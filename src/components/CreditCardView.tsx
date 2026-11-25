@@ -30,7 +30,7 @@ export function CreditCardView({ card, onPress, compact }: { card: CreditCard; o
           </View>
           <View style={{ alignItems: 'flex-end' }}>
             <Text style={s.number}>•••• {card.last4}</Text>
-            <Text style={s.network}>{card.network.toUpperCase()}</Text>
+            {card.network !== 'Other' && <Text style={s.network}>{card.network.toUpperCase()}</Text>}
           </View>
         </View>
       </LinearGradient>

@@ -50,7 +50,7 @@ export type RootStackParamList = {
   Insights: { cardId?: string } | undefined;
   Settings: undefined;
   Activity: undefined;
-  SmsImport: undefined;
+  SmsImport: { autoStart?: boolean } | undefined;
 };
 
 declare global {

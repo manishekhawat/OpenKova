@@ -4,12 +4,7 @@ import { defaultSettings, emptyState, seedState } from './seed';
 import type { AppState, BankAccount, Bill, CreditCard, PaymentKind, Payment, Settings, Transaction, User, Vehicle } from './types';
 import { loadState, saveState, wipeVault } from './vault';
 
-export type SmsImport = {
-  transactions: Transaction[];
-  cardUpdates: { cardId: string; outstanding: number; minDue?: number; dueDate?: string; statementDate: string }[];
-  accountUpdates: { accountId: string; balance: number }[];
-  lastScan: number;
-};
+import type { SmsChanges } from '../sms/importer';
 
 type Action =
   | { type: 'hydrate'; state: AppState }
@@ -31,7 +26,7 @@ type Action =
   | { type: 'addVehicle'; vehicle: Vehicle }
   | { type: 'updateVehicle'; vehicle: Vehicle }
   | { type: 'removeVehicle'; id: string }
-  | { type: 'importSms'; data: SmsImport }
+  | { type: 'importSms'; changes: SmsChanges }
   | { type: 'pay'; kind: PaymentKind; refId: string; subId?: string; amount: number; fromAccountId?: string; title: string };
 
 /** Fills in fields added after the first build so older saved data keeps working. */
@@ -140,20 +135,23 @@ function reducer(state: AppState, a: Action): AppState {
     case 'removeVehicle':
       return { ...state, vehicles: state.vehicles.filter((v) => v.id !== a.id) };
     case 'importSms': {
-      const known = new Set(state.transactions.map((t) => t.id));
-      const fresh = a.data.transactions.filter((t) => !known.has(t.id));
-      const cards = state.cards.map((c) => {
-        const u = a.data.cardUpdates.find((x) => x.cardId === c.id);
-        return u
-          ? { ...c, outstanding: u.outstanding, minDue: u.minDue ?? c.minDue, dueDate: u.dueDate ?? c.dueDate, statementDate: u.statementDate }
-          : c;
-      });
-      const accounts = state.accounts.map((acc) => {
-        const u = a.data.accountUpdates.find((x) => x.accountId === acc.id);
-        return u ? { ...acc, balance: u.balance } : acc;
-      });
-      const transactions = [...fresh, ...state.transactions].sort((x, y) => +new Date(y.date) - +new Date(x.date));
-      return { ...state, cards, accounts, transactions, settings: { ...state.settings, smsLastScan: Math.max(state.settings.smsLastScan ?? 0, a.data.lastScan) } };
+      const c = a.changes;
+      const merge = <T extends { id: string }>(list: T[], updated: T[], added: T[]) => {
+        const byId = new Map(updated.map((x) => [x.id, x]));
+        return [...list.map((x) => byId.get(x.id) ?? x), ...added.filter((x) => !list.some((y) => y.id === x.id))];
+      };
+      const knownT = new Set(state.transactions.map((t) => t.id));
+      const knownP = new Set(state.payments.map((p) => p.id));
+      return {
+        ...state,
+        cards: merge(state.cards, c.cards, c.newCards),
+        accounts: merge(state.accounts, c.accounts, c.newAccounts),
+        vehicles: merge(state.vehicles, c.vehicles, c.newVehicles),
+        bills: [...state.bills, ...c.newBills.filter((b) => !state.bills.some((x) => x.id === b.id))],
+        transactions: [...c.transactions.filter((t) => !knownT.has(t.id)), ...state.transactions].sort((x, y) => +new Date(y.date) - +new Date(x.date)),
+        payments: [...c.payments.filter((p) => !knownP.has(p.id)), ...state.payments].sort((x, y) => +new Date(y.date) - +new Date(x.date)),
+        settings: { ...state.settings, smsLastScan: Math.max(state.settings.smsLastScan ?? 0, c.lastScan) },
+      };
     }
     case 'pay':
       return applyPayment(state, a);
@@ -243,9 +241,10 @@ export function selectUpcoming(state: AppState): UpcomingItem[] {
       items.push({ key: 'b' + b.id, kind: 'bill', title: b.biller, subtitle: b.category, amount: b.amount, dueDate: b.dueDate, refId: b.id });
   }
   for (const v of state.vehicles) {
-    items.push({ key: 'i' + v.id, kind: 'insurance', title: `${v.make} ${v.model} insurance`, subtitle: v.regNo, dueDate: v.insuranceExpiry, refId: v.id });
-    items.push({ key: 'p' + v.id, kind: 'puc', title: `${v.make} ${v.model} PUC`, subtitle: v.regNo, dueDate: v.pucExpiry, refId: v.id });
-    items.push({ key: 's' + v.id, kind: 'service', title: `${v.make} ${v.model} service`, subtitle: v.regNo, dueDate: v.serviceDue, refId: v.id });
+    const name = vehicleName(v);
+    if (v.insuranceExpiry) items.push({ key: 'i' + v.id, kind: 'insurance', title: `${name} insurance`, subtitle: v.regNo, dueDate: v.insuranceExpiry, refId: v.id });
+    if (v.pucExpiry) items.push({ key: 'p' + v.id, kind: 'puc', title: `${name} PUC`, subtitle: v.regNo, dueDate: v.pucExpiry, refId: v.id });
+    if (v.serviceDue) items.push({ key: 's' + v.id, kind: 'service', title: `${name} service`, subtitle: v.regNo, dueDate: v.serviceDue, refId: v.id });
     const open = v.challans.filter((c) => !c.paidOn);
     if (open.length)
       items.push({
@@ -259,6 +258,11 @@ export function selectUpcoming(state: AppState): UpcomingItem[] {
       });
   }
   return items.sort((a, b) => +new Date(a.dueDate) - +new Date(b.dueDate));
+}
+
+export function vehicleName(v: Vehicle): string {
+  const n = `${v.make} ${v.model}`.trim();
+  return n || (v.kind === 'Bike' ? 'Your bike' : 'Your car');
 }
 
 export const totalCardDue = (s: AppState) => s.cards.reduce((n, c) => n + c.outstanding, 0);

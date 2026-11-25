@@ -31,7 +31,7 @@ export default function CardDetailScreen({ route, navigation }: Props) {
 
   if (!card) return <Screen padTop={false}><Text style={type.body}>This card was removed.</Text></Screen>;
 
-  const util = card.outstanding / card.limit;
+  const util = card.limit ? card.outstanding / card.limit : 0;
   const stat = (label: string, value: string, color: string = colors.ink) => (
     <View style={{ flex: 1 }}>
       <Text style={type.tiny}>{label}</Text>
@@ -51,7 +51,7 @@ export default function CardDetailScreen({ route, navigation }: Props) {
         </View>
         <View style={{ marginTop: space(5) }}>
           <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8 }}>
-            <Text style={type.small}>{inr(card.limit - card.outstanding)} available of {inr(card.limit)}</Text>
+            <Text style={type.small}>{card.limit ? `${inr(card.limit - card.outstanding)} available of ${inr(card.limit)}` : 'Credit limit not set · tap Edit'}</Text>
             <Text style={type.small}>{Math.round(util * 100)}%</Text>
           </View>
           <ProgressBar value={util} color={util > 0.3 ? colors.warn : colors.accent} />

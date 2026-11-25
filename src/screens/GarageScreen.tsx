@@ -3,12 +3,13 @@ import { useNavigation } from '@react-navigation/native';
 import React from 'react';
 import { Pressable, Text, View } from 'react-native';
 import { Button, Empty, Pill, Screen } from '../components/ui';
-import { useStore } from '../data/store';
+import { useStore, vehicleName } from '../data/store';
 import type { Vehicle } from '../data/types';
 import { colors, radius, space, type } from '../theme';
 import { daysFromToday, expiryLabel, inr } from '../utils/format';
 
-export function statusColor(iso: string) {
+export function statusColor(iso?: string) {
+  if (!iso) return colors.faint;
   const d = daysFromToday(iso);
   return d < 0 ? colors.bad : d <= 30 ? colors.warn : colors.good;
 }
@@ -33,7 +34,7 @@ function VehicleCard({ v, onPress }: { v: Vehicle; onPress: () => void }) {
     <Pressable onPress={onPress} style={({ pressed }) => [{ backgroundColor: colors.surface, borderRadius: radius.xl, borderWidth: 1, borderColor: colors.line, padding: space(5) }, pressed && { opacity: 0.85 }]}>
       <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' }}>
         <View style={{ flex: 1 }}>
-          <Text style={type.h3}>{v.make} {v.model}</Text>
+          <Text style={type.h3}>{vehicleName(v)}</Text>
           <Text style={[type.small, { marginTop: 2, marginBottom: space(3) }]}>{v.year} · {v.fuel}</Text>
           <NumberPlate regNo={v.regNo} />
         </View>
@@ -41,8 +42,8 @@ function VehicleCard({ v, onPress }: { v: Vehicle; onPress: () => void }) {
       </View>
 
       <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: space(5) }}>
-        <Pill label={`Insurance ${expiryLabel(v.insuranceExpiry)}`} color={statusColor(v.insuranceExpiry)} />
-        <Pill label={`PUC ${expiryLabel(v.pucExpiry)}`} color={statusColor(v.pucExpiry)} />
+        <Pill label={v.insuranceExpiry ? `Insurance ${expiryLabel(v.insuranceExpiry)}` : 'Insurance date not set'} color={statusColor(v.insuranceExpiry)} />
+        <Pill label={v.pucExpiry ? `PUC ${expiryLabel(v.pucExpiry)}` : 'PUC date not set'} color={statusColor(v.pucExpiry)} />
         {openChallans.length > 0 && <Pill label={`${openChallans.length} challan · ${inr(fine)}`} color={colors.bad} />}
       </View>
 
@@ -58,7 +59,7 @@ export default function GarageScreen() {
   const nav = useNavigation();
   const { state } = useStore();
   const alerts = state.vehicles.reduce(
-    (n, v) => n + [v.insuranceExpiry, v.pucExpiry].filter((d) => daysFromToday(d) <= 30).length + v.challans.filter((c) => !c.paidOn).length,
+    (n, v) => n + [v.insuranceExpiry, v.pucExpiry].filter((d) => d && daysFromToday(d) <= 30).length + v.challans.filter((c) => !c.paidOn).length,
     0,
   );
 

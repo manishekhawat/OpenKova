@@ -2,8 +2,9 @@ import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
 import React, { useMemo } from 'react';
-import { Pressable, ScrollView, Text, View } from 'react-native';
+import { Platform, Pressable, ScrollView, Text, View } from 'react-native';
 import { CreditCardView } from '../components/CreditCardView';
+import { Logo } from '../components/Logo';
 import { IconName, ListRow, Screen, SectionHeader, Surface } from '../components/ui';
 import { selectUpcoming, totalBalance, totalCardDue, UpcomingItem, useStore } from '../data/store';
 import { colors, radius, space, type } from '../theme';
@@ -46,9 +47,9 @@ export default function HomeScreen() {
   }, [state.transactions]);
 
   const quick: { label: string; icon: IconName; go: () => void }[] = [
+    ...(Platform.OS === 'android' ? [{ label: 'Scan SMS', icon: 'mail-unread-outline' as IconName, go: () => nav.navigate('SmsImport', { autoStart: true }) }] : []),
     { label: 'Add card', icon: 'add-circle-outline', go: () => nav.navigate('AddCard') },
     { label: 'Pay bill', icon: 'flash-outline', go: () => nav.navigate('Tabs', { screen: 'Bills' } as never) },
-    { label: 'FASTag', icon: 'pricetag-outline', go: () => nav.navigate('Tabs', { screen: 'Garage' } as never) },
     { label: 'Insights', icon: 'pie-chart-outline', go: () => nav.navigate('Insights') },
   ];
 
@@ -56,6 +57,9 @@ export default function HomeScreen() {
     <Screen>
       <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
         <View>
+          <View style={{ marginBottom: space(4) }}>
+            <Logo size={22} />
+          </View>
           <Text style={type.small}>{greeting()},</Text>
           <Text style={type.title}>{state.user?.name.split(' ')[0]}</Text>
         </View>
@@ -94,6 +98,17 @@ export default function HomeScreen() {
           </Pressable>
         ))}
       </View>
+
+      {Platform.OS === 'android' && state.cards.length + state.accounts.length + state.bills.length + state.vehicles.length === 0 && (
+        <Pressable onPress={() => nav.navigate('SmsImport', { autoStart: true })} style={({ pressed }) => [{ marginTop: space(5), padding: space(4), borderRadius: radius.lg, backgroundColor: colors.accent + '1A', borderWidth: 1, borderColor: colors.accent + '55', flexDirection: 'row', alignItems: 'center' }, pressed && { opacity: 0.7 }]}>
+          <Ionicons name="sparkles" size={22} color={colors.accent} />
+          <View style={{ flex: 1, marginLeft: space(3) }}>
+            <Text style={[type.body, { fontWeight: '600' }]}>Set up in one tap</Text>
+            <Text style={[type.small, { marginTop: 2 }]}>Scan last month's SMS to add your cards, accounts, bills and vehicles.</Text>
+          </View>
+          <Ionicons name="chevron-forward" size={18} color={colors.muted} />
+        </Pressable>
+      )}
 
       <SectionHeader title="Your cards" action="See all" onAction={() => nav.navigate('Tabs', { screen: 'Cards' } as never)} />
       <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginHorizontal: -space(5) }} contentContainerStyle={{ paddingHorizontal: space(5), gap: space(3) }} snapToInterval={300 + space(3)} decelerationRate="fast">

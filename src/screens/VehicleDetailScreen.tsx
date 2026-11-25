@@ -2,7 +2,7 @@ import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import React, { useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
 import { Button, DateField, Field, ListRow, Screen, SectionHeader, Surface } from '../components/ui';
-import { useStore } from '../data/store';
+import { useStore, vehicleName } from '../data/store';
 import type { RootStackParamList } from '../navigation';
 import { colors, space, type } from '../theme';
 import { expiryLabel, inr, shortDate, uid } from '../utils/format';
@@ -26,7 +26,7 @@ export default function VehicleDetailScreen({ route, navigation }: Props) {
 
   return (
     <Screen padTop={false}>
-      <Text style={type.title}>{v.make} {v.model}</Text>
+      <Text style={type.title}>{vehicleName(v)}</Text>
       <Text style={[type.small, { marginTop: 2, marginBottom: space(4) }]}>{v.kind} · {v.year} · {v.fuel}</Text>
       <NumberPlate regNo={v.regNo} big />
       <Button label="Edit vehicle & dates" variant="ghost" icon="create-outline" onPress={() => navigation.navigate('AddVehicle', { id: v.id })} style={{ marginTop: space(4) }} />
@@ -44,9 +44,9 @@ export default function VehicleDetailScreen({ route, navigation }: Props) {
 
       <SectionHeader title="Documents & reminders" />
       <Surface style={{ paddingVertical: space(1) }}>
-        <ListRow icon="shield-checkmark-outline" iconColor={statusColor(v.insuranceExpiry)} title="Insurance" subtitle={`${v.insurer} · till ${shortDate(v.insuranceExpiry)}`} rightSub={expiryLabel(v.insuranceExpiry)} rightSubColor={statusColor(v.insuranceExpiry)} />
-        <ListRow icon="leaf-outline" iconColor={statusColor(v.pucExpiry)} title="Pollution (PUC)" subtitle={`Valid till ${shortDate(v.pucExpiry)}`} rightSub={expiryLabel(v.pucExpiry)} rightSubColor={statusColor(v.pucExpiry)} />
-        <ListRow icon="construct-outline" iconColor={statusColor(v.serviceDue)} title="Next service" subtitle={shortDate(v.serviceDue)} rightSub={expiryLabel(v.serviceDue).replace('expires', 'due').replace('expired', 'overdue')} rightSubColor={statusColor(v.serviceDue)} last />
+        <ListRow icon="shield-checkmark-outline" iconColor={statusColor(v.insuranceExpiry)} title="Insurance" subtitle={v.insuranceExpiry ? `${v.insurer} · till ${shortDate(v.insuranceExpiry)}` : 'Tap Edit to add the expiry date'} rightSub={v.insuranceExpiry ? expiryLabel(v.insuranceExpiry) : undefined} rightSubColor={statusColor(v.insuranceExpiry)} />
+        <ListRow icon="leaf-outline" iconColor={statusColor(v.pucExpiry)} title="Pollution (PUC)" subtitle={v.pucExpiry ? `Valid till ${shortDate(v.pucExpiry)}` : 'Not set'} rightSub={v.pucExpiry ? expiryLabel(v.pucExpiry) : undefined} rightSubColor={statusColor(v.pucExpiry)} />
+        <ListRow icon="construct-outline" iconColor={statusColor(v.serviceDue)} title="Next service" subtitle={v.serviceDue ? shortDate(v.serviceDue) : 'Not set'} rightSub={v.serviceDue ? expiryLabel(v.serviceDue).replace('expires', 'due').replace('expired', 'overdue') : undefined} rightSubColor={statusColor(v.serviceDue)} last />
       </Surface>
 
       <SectionHeader title={`Challans${open.length ? ` · ${open.length} unpaid` : ''}`} />

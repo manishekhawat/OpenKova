@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="306 252 438 520">
+  <defs>
+    <linearGradient id="arm" x1="0" y1="1" x2="1" y2="0">
+      <stop offset="0" stop-color="#7C91FF"/>
+      <stop offset="1" stop-color="#C9D4FF"/>
+    </linearGradient>
+    <linearGradient id="leg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#5D74F0"/>
+      <stop offset="1" stop-color="#9FB4FF"/>
+    </linearGradient>
+    <linearGradient id="coin" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#F3DFA6"/>
+      <stop offset="1" stop-color="#C9A55A"/>
+    </linearGradient>
+  </defs>
+  <g transform="translate(-14 0)">
+  <!-- stem -->
+  <rect x="330" y="262" width="104" height="500" rx="52" fill="#F2F0EA"/>
+  <!-- upper arm -->
+  <line x1="488" y1="512" x2="664" y2="314" stroke="url(#arm)" stroke-width="104" stroke-linecap="round"/>
+  <!-- lower leg -->
+  <line x1="488" y1="512" x2="664" y2="710" stroke="url(#leg)" stroke-width="104" stroke-linecap="round"/>
+  <!-- coin -->
+  <circle cx="704" cy="512" r="44" fill="url(#coin)"/>
+</g>
+</svg>

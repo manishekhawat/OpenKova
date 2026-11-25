@@ -1,6 +1,7 @@
 // Local due-date reminders. Everything is scheduled on the phone; no server or push service.
 import * as Notifications from 'expo-notifications';
 import { Platform } from 'react-native';
+import { vehicleName } from '../data/store';
 import type { AppState } from '../data/types';
 import { inr } from '../utils/format';
 
@@ -40,9 +41,10 @@ function collectDues(state: AppState): Due[] {
   for (const b of state.bills)
     if (!b.paidOn) out.push({ id: `bill-${b.id}`, title: `${b.biller} bill`, body: `${inr(b.amount)} · ${b.category}`, due: new Date(b.dueDate) });
   for (const v of state.vehicles) {
-    out.push({ id: `ins-${v.id}`, title: `${v.make} ${v.model} insurance`, body: `${v.regNo} · policy expires`, due: new Date(v.insuranceExpiry) });
-    out.push({ id: `puc-${v.id}`, title: `${v.make} ${v.model} PUC`, body: `${v.regNo} · pollution certificate expires`, due: new Date(v.pucExpiry) });
-    out.push({ id: `svc-${v.id}`, title: `${v.make} ${v.model} service`, body: `${v.regNo} · service due`, due: new Date(v.serviceDue) });
+    const name = vehicleName(v);
+    if (v.insuranceExpiry) out.push({ id: `ins-${v.id}`, title: `${name} insurance`, body: `${v.regNo} · policy expires`, due: new Date(v.insuranceExpiry) });
+    if (v.pucExpiry) out.push({ id: `puc-${v.id}`, title: `${name} PUC`, body: `${v.regNo} · pollution certificate expires`, due: new Date(v.pucExpiry) });
+    if (v.serviceDue) out.push({ id: `svc-${v.id}`, title: `${name} service`, body: `${v.regNo} · service due`, due: new Date(v.serviceDue) });
   }
   return out;
 }

@@ -6,6 +6,7 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { AppState as RNAppState, StyleSheet, Text, View } from 'react-native';
 import { useStore } from '../data/store';
 import { colors, space, type } from '../theme';
+import { Logo } from './Logo';
 import { Button } from './ui';
 
 const LOCK_AFTER_MS = 30_000;
@@ -79,7 +80,7 @@ export function LockGate({ children }: { children: React.ReactNode }) {
       {children}
       {enabled && (locked || hidden) && (
         <View style={[StyleSheet.absoluteFill, s.cover]}>
-          <Text style={{ color: colors.accent, fontSize: 18, fontWeight: '800', letterSpacing: 2 }}>kova</Text>
+          <Logo size={40} />
           {locked && (
             <>
               <Ionicons name="lock-closed" size={36} color={colors.ink} style={{ marginTop: space(10) }} />

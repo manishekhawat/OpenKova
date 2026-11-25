@@ -1,4 +1,4 @@
-export type Network = 'Visa' | 'Mastercard' | 'RuPay' | 'Amex' | 'Diners';
+export type Network = 'Visa' | 'Mastercard' | 'RuPay' | 'Amex' | 'Diners' | 'Other';
 
 export interface CreditCard {
   id: string;
@@ -55,6 +55,7 @@ export interface Challan {
   date: string;
   amount: number;
   paidOn?: string;
+  challanNo?: string;
 }
 
 export interface Vehicle {
@@ -66,9 +67,9 @@ export interface Vehicle {
   kind: 'Car' | 'Bike';
   year: number;
   insurer: string;
-  insuranceExpiry: string;
-  pucExpiry: string;
-  serviceDue: string;
+  insuranceExpiry?: string;
+  pucExpiry?: string;
+  serviceDue?: string;
   fastagBalance: number;
   challans: Challan[];
 }

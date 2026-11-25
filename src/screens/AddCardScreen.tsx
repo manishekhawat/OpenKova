@@ -1,6 +1,7 @@
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import React, { useLayoutEffect, useState } from 'react';
 import { KeyboardAvoidingView, Platform, Text, View } from 'react-native';
+import { CardScanner } from '../components/CardScanner';
 import { CreditCardView } from '../components/CreditCardView';
 import { Button, Chips, DateField, Field, Screen, SectionHeader } from '../components/ui';
 import { bankLinks } from '../data/banks';
@@ -11,7 +12,7 @@ import { normaliseUrl } from '../services/openPay';
 import { colors, space, type } from '../theme';
 import { addDays, uid } from '../utils/format';
 
-const NETWORKS: readonly Network[] = ['Visa', 'Mastercard', 'RuPay', 'Amex', 'Diners'];
+const NETWORKS: readonly Network[] = ['Visa', 'Mastercard', 'RuPay', 'Amex', 'Diners', 'Other'];
 const PALETTES: [string, string][] = [
   ['#2B2B33', '#0E0E12'],
   ['#3A1E4A', '#14091C'],
@@ -44,6 +45,8 @@ export default function AddCardScreen({ navigation, route }: Props) {
   const [payUrl, setPayUrl] = useState(existing?.payUrl ?? '');
   const [payApp, setPayApp] = useState(existing?.payApp ?? '');
   const [tried, setTried] = useState(false);
+  const [holder, setHolder] = useState(existing?.holder ?? state.user?.name.toUpperCase() ?? '');
+  const [scanNote, setScanNote] = useState('');
 
   const out = Number(outstanding || 0);
   const errors = {
@@ -64,7 +67,7 @@ export default function AddCardScreen({ navigation, route }: Props) {
     name: name.trim() || 'Credit Card',
     network,
     last4: last4.padEnd(4, '•'),
-    holder: state.user?.name.toUpperCase() ?? '',
+    holder,
     limit: Number(limit) || 0,
     outstanding: out,
     minDue: minDue ? Number(minDue) : Math.round(out * 0.05),
@@ -89,9 +92,25 @@ export default function AddCardScreen({ navigation, route }: Props) {
     <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       <Screen padTop={false}>
         <CreditCardView card={card} />
-        <Text style={[type.tiny, { marginTop: space(3), marginBottom: space(5) }]}>
-          Kova only stores the last 4 digits. Never enter your full card number, CVV or PIN anywhere but your bank.
-        </Text>
+        <View style={{ height: space(5) }} />
+        {!editing && (
+          <CardScanner
+            onResult={(g, source) => {
+              const filled: string[] = [];
+              if (g.last4) { setLast4(g.last4); filled.push('last 4 digits'); }
+              if (g.bank) { setBank(g.bank); filled.push('bank'); }
+              if (g.network) { setNetwork(g.network); filled.push('network'); }
+              if (g.product) { setName(g.product); filled.push('card name'); }
+              if (g.holder) { setHolder(g.holder); filled.push('name'); }
+              setScanNote(
+                filled.length
+                  ? `Filled ${filled.join(', ')} from the ${source === 'nfc' ? 'tap' : 'photo'}. Check them, then add the limit and current dues.`
+                  : '',
+              );
+            }}
+          />
+        )}
+        {scanNote ? <Text style={[type.small, { color: colors.good, marginBottom: space(4), lineHeight: 20 }]}>{scanNote}</Text> : null}
         <Field label="Bank" value={bank} onChangeText={setBank} placeholder="e.g. ICICI Bank" error={err('bank')} />
         <Field label="Card name (optional)" value={name} onChangeText={setName} placeholder="e.g. Amazon Pay" />
         <Field label="Last 4 digits" value={last4} onChangeText={(t) => setLast4(t.replace(/\D/g, '').slice(0, 4))} keyboardType="number-pad" placeholder="1234" error={err('last4')} />

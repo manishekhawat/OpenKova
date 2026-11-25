@@ -170,9 +170,16 @@ export function Field({ label, error, ...props }: TextInputProps & { label: stri
   );
 }
 
-/** DD-MM-YYYY text input; calls onChange with an ISO date (or undefined while invalid). */
+/** DD-MM-YYYY text input; calls onChange with an ISO date, or undefined when empty or not a valid date yet. */
 export function DateField({ label, value, onChange, error }: { label: string; value?: string; onChange: (iso: string | undefined) => void; error?: string }) {
   const [text, setText] = React.useState(value ? toDMY(value) : '');
+  // Follow changes made from outside (e.g. details filled in from SMS).
+  React.useEffect(() => {
+    if (value && toDMY(value) !== text) setText(toDMY(value));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [value]);
+  const complete = /^\d{2}-\d{2}-\d{4}$/.test(text);
+  const invalid = text.length > 0 && complete && !value;
   return (
     <Field
       label={label}
@@ -180,7 +187,7 @@ export function DateField({ label, value, onChange, error }: { label: string; va
       placeholder="DD-MM-YYYY"
       keyboardType="number-pad"
       maxLength={10}
-      error={error}
+      error={error || (invalid ? "That date doesn't exist" : undefined)}
       onChangeText={(t) => {
         const digits = t.replace(/\D/g, '').slice(0, 8);
         const formatted = [digits.slice(0, 2), digits.slice(2, 4), digits.slice(4)].filter(Boolean).join('-');

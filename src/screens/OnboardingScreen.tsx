@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { KeyboardAvoidingView, Platform, Pressable, Text, View } from 'react-native';
 import { canUseLock, confirmIdentity } from '../components/LockGate';
+import { Logo } from '../components/Logo';
 import { Button, Field, IconBadge, IconName, Screen, Surface, ToggleRow } from '../components/ui';
 import { useStore } from '../data/store';
 import { ensureReminderPermission } from '../services/reminders';
@@ -58,7 +59,7 @@ export default function OnboardingScreen() {
     <KeyboardAvoidingView style={{ flex: 1, backgroundColor: colors.bg }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       <Screen>
         <View style={{ marginTop: space(8) }}>
-          <Text style={{ color: colors.accent, fontSize: 18, fontWeight: '800', letterSpacing: 2 }}>kova</Text>
+          <Logo size={34} />
           <Text style={[type.hero, { marginTop: space(6) }]}>
             {step === 'name' ? 'Every card, bill and\nvehicle. One place.' : `Hi ${name.trim().split(' ')[0]}.\nHow do you want to start?`}
           </Text>
