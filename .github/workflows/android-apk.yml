@@ -81,8 +81,11 @@ jobs:
           gh release create "$TAG" --prerelease --target "$GITHUB_SHA" \
             --title "Kova test build ${{ github.run_number }}" \
             --notes "APK built from $GITHUB_SHA. Install on Android (allow 'Install unknown apps')."
+          uploaded() { gh release view "$TAG" --json assets -q '.assets[] | select(.state=="uploaded") | .name' | grep -qx "$APK"; }
           for attempt in 1 2 3; do
-            gh release upload "$TAG" "$APK" --clobber && exit 0
-            echo "Upload failed (attempt $attempt), retrying in 15s"; sleep 15
+            gh release upload "$TAG" "$APK" --clobber || true
+            # GitHub sometimes reports an error even though the upload landed; trust what's on the release.
+            uploaded && exit 0
+            echo "APK not on the release yet (attempt $attempt), retrying in 15s"; sleep 15
           done
           exit 1
