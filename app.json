@@ -18,12 +18,36 @@
         "monochromeImage": "./assets/android-icon-monochrome.png"
       },
       "predictiveBackGestureEnabled": false,
-      "package": "com.example.kova"
+      "package": "com.example.kova",
+      "permissions": [
+        "android.permission.READ_SMS",
+        "android.permission.USE_BIOMETRIC",
+        "android.permission.POST_NOTIFICATIONS",
+        "android.permission.SCHEDULE_EXACT_ALARM",
+        "android.permission.QUERY_ALL_PACKAGES"
+      ],
+      "allowBackup": false
     },
     "web": {
       "favicon": "./assets/favicon.png"
     },
     "scheme": "kova",
-    "backgroundColor": "#0A0A0C"
+    "backgroundColor": "#0A0A0C",
+    "plugins": [
+      "./plugins/withBankAppQueries",
+      [
+        "expo-local-authentication",
+        {
+          "faceIDPermission": "Kova uses Face ID to unlock the app."
+        }
+      ],
+      "expo-secure-store",
+      [
+        "expo-notifications",
+        {
+          "color": "#9FB4FF"
+        }
+      ]
+    ]
   }
 }

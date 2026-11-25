@@ -3,103 +3,131 @@ import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import * as Haptics from 'expo-haptics';
 import React, { useMemo, useState } from 'react';
 import { KeyboardAvoidingView, Platform, Pressable, Text, TextInput, View } from 'react-native';
-import { Button, Screen, SectionHeader, Surface } from '../components/ui';
+import { Button, IconBadge, Screen, SectionHeader, Surface } from '../components/ui';
+import { bankLinks } from '../data/banks';
 import { useStore } from '../data/store';
 import type { RootStackParamList } from '../navigation';
+import { openPaymentTarget } from '../services/openPay';
 import { colors, radius, space, type } from '../theme';
 import { dueLabel, inr } from '../utils/format';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Pay'>;
 type Preset = { label: string; amount: number };
+type PayOption = { key: string; label: string; sub: string; app?: string; url?: string };
 
+// Kova doesn't move money. You pay in your bank's app or website, then record it here
+// so dues, balances and history stay correct.
 export default function PayScreen({ route, navigation }: Props) {
   const { kind, refId, subId } = route.params;
   const { state, dispatch } = useStore();
 
-  // Work out what is being paid and the amount choices for it.
   const target = useMemo(() => {
     if (kind === 'card') {
       const c = state.cards.find((x) => x.id === refId);
       if (!c) return null;
       const presets: Preset[] = [{ label: 'Total due', amount: c.outstanding }];
       if (c.minDue > 0 && c.minDue < c.outstanding) presets.push({ label: 'Minimum due', amount: c.minDue });
-      return { title: `${c.bank} ${c.name}`, subtitle: `Card •• ${c.last4} · ${dueLabel(c.dueDate)}`, presets, custom: true, max: c.outstanding };
+      const preset = bankLinks(c.bank);
+      return {
+        title: `${c.bank} ${c.name}`,
+        subtitle: `Card •• ${c.last4}${c.outstanding ? ` · ${dueLabel(c.dueDate)}` : ''}`,
+        presets,
+        custom: true,
+        bank: c.bank,
+        own: { app: c.payApp ?? preset?.app, url: c.payUrl ?? preset?.url, label: preset?.label ?? c.bank },
+      };
     }
     if (kind === 'bill') {
       const b = state.bills.find((x) => x.id === refId);
       if (!b) return null;
-      return { title: b.biller, subtitle: `${b.category} · ${b.consumerId} · ${dueLabel(b.dueDate)}`, presets: [{ label: 'Bill amount', amount: b.amount }], custom: false, max: b.amount };
+      return {
+        title: b.biller,
+        subtitle: `${b.category} · ${b.consumerId} · ${dueLabel(b.dueDate)}`,
+        presets: [{ label: 'Bill amount', amount: b.amount }],
+        custom: true,
+        bank: '',
+        own: b.payUrl ? { url: b.payUrl, label: `${b.biller} website` } : undefined,
+      };
     }
     const v = state.vehicles.find((x) => x.id === refId);
     if (!v) return null;
     if (kind === 'challan') {
       const ch = v.challans.find((x) => x.id === subId);
       if (!ch) return null;
-      return { title: `Challan · ${ch.offence}`, subtitle: `${v.regNo} · ${ch.location}`, presets: [{ label: 'Fine', amount: ch.amount }], custom: false, max: ch.amount };
+      return {
+        title: `Challan · ${ch.offence}`,
+        subtitle: `${v.regNo} · ${ch.location}`,
+        presets: [{ label: 'Fine', amount: ch.amount }],
+        custom: false,
+        bank: '',
+        own: { url: 'https://echallan.parivahan.gov.in', label: 'Parivahan e-Challan' },
+      };
     }
     return {
       title: 'FASTag recharge',
       subtitle: `${v.regNo} · balance ${inr(v.fastagBalance)}`,
       presets: [500, 1000, 2000].map((a) => ({ label: inr(a), amount: a })),
       custom: true,
-      max: 100000,
+      bank: '',
+      own: undefined,
     };
   }, [kind, refId, subId, state]);
+
+  // Places to pay: the item's own link first, then the apps of the user's linked banks.
+  const options = useMemo<PayOption[]>(() => {
+    const out: PayOption[] = [];
+    const seen = new Set<string>();
+    if (target?.own && (target.own.app || target.own.url)) {
+      out.push({ key: 'own', label: target.own.label, sub: target.own.app ? 'Open app' : 'Open website', app: target.own.app, url: target.own.url });
+      seen.add(target.own.label);
+    }
+    for (const a of state.accounts) {
+      const links = bankLinks(a.bank);
+      if (!links || seen.has(links.label)) continue;
+      seen.add(links.label);
+      out.push({ key: a.id, label: links.label, sub: links.app ? 'Open bank app' : 'Open net banking', app: links.app, url: links.url });
+    }
+    return out;
+  }, [target, state.accounts]);
 
   const primary = state.accounts.find((a) => a.primary) ?? state.accounts[0];
   const [presetIdx, setPresetIdx] = useState(0);
   const [customText, setCustomText] = useState('');
-  const [accountId, setAccountId] = useState(primary?.id);
-  const [phase, setPhase] = useState<'form' | 'processing' | 'done'>('form');
-  const [reference] = useState(() => 'KV' + Math.floor(1e9 + Math.random() * 9e9));
-  const [paidAmount, setPaidAmount] = useState(0);
+  const [accountId, setAccountId] = useState<string | undefined>(primary?.id);
+  const [opened, setOpened] = useState('');
+  const [done, setDone] = useState<number | null>(null);
 
-  if (!target && phase !== 'done') {
+  if (!target && done === null) {
     return <Screen padTop={false}><Text style={type.body}>This item is no longer available.</Text></Screen>;
   }
 
   const usingCustom = presetIdx === -1;
   const amount = usingCustom ? Number(customText || 0) : target?.presets[presetIdx]?.amount ?? 0;
   const account = state.accounts.find((a) => a.id === accountId);
-  let error = '';
-  if (amount <= 0) error = 'Enter an amount';
-  else if (target && amount > target.max) error = `Amount can't exceed ${inr(target.max)}`;
-  else if (account && amount > account.balance) error = 'Not enough balance in this account';
-  else if (!account) error = 'Link a bank account to pay';
 
-  const pay = () => {
-    if (error || !account || !target) return;
-    setPhase('processing');
-    setPaidAmount(amount);
-    // Simulated bank debit. Replace with your payment gateway / BBPS partner call.
-    setTimeout(() => {
-      dispatch({ type: 'pay', kind, refId, subId, amount, fromAccountId: account.id, title: target.title });
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
-      setPhase('done');
-    }, 1400);
+  const open = async (o: PayOption) => {
+    const how = await openPaymentTarget(o);
+    setOpened(how === 'failed' ? `Couldn't open ${o.label}. Add a link for it from the card or bill.` : '');
   };
 
-  if (phase === 'done') {
+  const record = () => {
+    if (!target || amount <= 0) return;
+    dispatch({ type: 'pay', kind, refId, subId, amount, fromAccountId: account?.id, title: target.title });
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
+    setDone(amount);
+  };
+
+  if (done !== null) {
     return (
       <Screen padTop={false} scroll={false}>
         <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
           <View style={{ width: 84, height: 84, borderRadius: 42, backgroundColor: colors.good + '22', alignItems: 'center', justifyContent: 'center' }}>
             <Ionicons name="checkmark" size={44} color={colors.good} />
           </View>
-          <Text style={[type.hero, { marginTop: space(6) }]}>{inr(paidAmount)}</Text>
-          <Text style={[type.body, { marginTop: 6, color: colors.muted }]}>paid successfully</Text>
-          <Surface style={{ marginTop: space(8), alignSelf: 'stretch' }}>
-            {[
-              ['To', target?.title ?? '—'],
-              ['From', account ? `${account.bank} •• ${account.last4}` : '—'],
-              ['Reference', reference],
-            ].map(([k, v]) => (
-              <View key={k} style={{ flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 8 }}>
-                <Text style={type.small}>{k}</Text>
-                <Text style={[type.body, { flexShrink: 1, textAlign: 'right', marginLeft: 12 }]} numberOfLines={1}>{v}</Text>
-              </View>
-            ))}
-          </Surface>
+          <Text style={[type.hero, { marginTop: space(6) }]}>{inr(done)}</Text>
+          <Text style={[type.body, { marginTop: 6, color: colors.muted, textAlign: 'center' }]}>
+            recorded as paid{account ? ` from ${account.bank} •• ${account.last4}` : ''}
+          </Text>
         </View>
         <Button label="Done" onPress={() => navigation.goBack()} />
       </Screen>
@@ -136,26 +164,38 @@ export default function PayScreen({ route, navigation }: Props) {
           )}
         </View>
 
-        <SectionHeader title="Pay from" action="Link account" onAction={() => navigation.navigate('AddAccount')} />
+        <SectionHeader title="1. Pay in your bank" />
+        {options.length === 0 ? (
+          <Text style={type.small}>Link a bank account in Money, or add a payment link to this card or bill, to get a shortcut here.</Text>
+        ) : (
+          <Surface style={{ paddingVertical: space(1) }}>
+            {options.map((o, i) => (
+              <Pressable key={o.key} onPress={() => open(o)} style={({ pressed }) => [{ flexDirection: 'row', alignItems: 'center', paddingVertical: space(3) }, i < options.length - 1 && { borderBottomWidth: 1, borderBottomColor: colors.line }, pressed && { opacity: 0.6 }]}>
+                <IconBadge name={o.app ? 'phone-portrait-outline' : 'globe-outline'} />
+                <View style={{ flex: 1, marginLeft: space(3) }}>
+                  <Text style={type.body}>{o.label}</Text>
+                  <Text style={[type.small, { marginTop: 2 }]}>{o.sub}</Text>
+                </View>
+                <Ionicons name="open-outline" size={18} color={colors.muted} />
+              </Pressable>
+            ))}
+          </Surface>
+        )}
+        {opened ? <Text style={{ color: colors.warn, marginTop: 8 }}>{opened}</Text> : null}
+
+        <SectionHeader title="2. Record it in Kova" />
+        <Text style={[type.small, { marginBottom: space(3) }]}>Paid from (updates that account's balance)</Text>
         <View style={{ gap: 10 }}>
           {state.accounts.map((a) => (
-            <Option
-              key={a.id}
-              selected={a.id === accountId}
-              onPress={() => setAccountId(a.id)}
-              title={`${a.bank} •• ${a.last4}`}
-              subtitle={`${a.type} account`}
-              right={inr(a.balance)}
-              rightColor={amount > a.balance ? colors.bad : colors.muted}
-            />
+            <Option key={a.id} selected={a.id === accountId} onPress={() => setAccountId(a.id)} title={`${a.bank} •• ${a.last4}`} right={inr(a.balance)} />
           ))}
+          <Option selected={!accountId} onPress={() => setAccountId(undefined)} title="Don't track the account" />
         </View>
-        <Text style={[type.tiny, { marginTop: space(3) }]}>Paid via net banking / account debit. UPI is not used in this app.</Text>
 
-        <View style={{ marginTop: space(8) }}>
-          {error && amount > 0 ? <Text style={{ color: colors.bad, textAlign: 'center', marginBottom: 10 }}>{error}</Text> : null}
-          <Button label={amount > 0 ? `Pay ${inr(amount)}` : 'Pay'} onPress={pay} disabled={!!error} loading={phase === 'processing'} />
-        </View>
+        <Button label={amount > 0 ? `Mark ${inr(amount)} as paid` : 'Mark as paid'} onPress={record} disabled={amount <= 0} style={{ marginTop: space(8) }} />
+        {kind === 'bill' && (
+          <Button label="Edit this bill" variant="ghost" icon="create-outline" onPress={() => navigation.navigate('AddBill', { id: refId })} style={{ marginTop: space(3) }} />
+        )}
       </Screen>
     </KeyboardAvoidingView>
   );
@@ -179,15 +219,12 @@ function Radio({ on }: { on: boolean }) {
   );
 }
 
-function Option({ selected, onPress, title, subtitle, right, rightColor }: { selected: boolean; onPress: () => void; title: string; subtitle?: string; right?: string; rightColor?: string }) {
+function Option({ selected, onPress, title, right }: { selected: boolean; onPress: () => void; title: string; right?: string }) {
   return (
     <Pressable onPress={onPress} style={optStyle(selected)}>
       <Radio on={selected} />
-      <View style={{ flex: 1, marginLeft: 12 }}>
-        <Text style={type.body}>{title}</Text>
-        {subtitle ? <Text style={[type.small, { marginTop: 2 }]}>{subtitle}</Text> : null}
-      </View>
-      {right ? <Text style={[type.body, { fontWeight: '600', color: rightColor ?? colors.ink }]}>{right}</Text> : null}
+      <Text style={[type.body, { flex: 1, marginLeft: 12 }]}>{title}</Text>
+      {right ? <Text style={[type.body, { fontWeight: '600', color: colors.muted }]}>{right}</Text> : null}
     </Pressable>
   );
 }

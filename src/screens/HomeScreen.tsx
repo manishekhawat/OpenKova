@@ -59,7 +59,7 @@ export default function HomeScreen() {
           <Text style={type.small}>{greeting()},</Text>
           <Text style={type.title}>{state.user?.name.split(' ')[0]}</Text>
         </View>
-        <Pressable onPress={() => nav.navigate('Profile')} hitSlop={10} style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: colors.surfaceHi, alignItems: 'center', justifyContent: 'center' }}>
+        <Pressable onPress={() => nav.navigate('Settings')} hitSlop={10} style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: colors.surfaceHi, alignItems: 'center', justifyContent: 'center' }}>
           <Text style={{ color: colors.ink, fontWeight: '700', fontSize: 16 }}>{state.user?.name[0]?.toUpperCase()}</Text>
         </Pressable>
       </View>
@@ -102,12 +102,23 @@ export default function HomeScreen() {
             <CreditCardView card={c} onPress={() => nav.navigate('CardDetail', { id: c.id })} />
           </View>
         ))}
+        <Pressable
+          onPress={() => nav.navigate('AddCard')}
+          style={{ width: state.cards.length ? 160 : 300, aspectRatio: state.cards.length ? undefined : 1.586, height: state.cards.length ? 300 / 1.586 : undefined, borderRadius: radius.xl, borderWidth: 1, borderStyle: 'dashed', borderColor: colors.line, alignItems: 'center', justifyContent: 'center' }}
+        >
+          <Ionicons name="add" size={28} color={colors.muted} />
+          <Text style={[type.small, { marginTop: 6 }]}>{state.cards.length ? 'Add card' : 'Add your first credit card'}</Text>
+        </Pressable>
       </ScrollView>
 
       <SectionHeader title="Coming up" />
       <Surface style={{ paddingVertical: space(1) }}>
         {upcoming.length === 0 ? (
-          <Text style={[type.small, { paddingVertical: space(4) }]}>Nothing due in the next 30 days.</Text>
+          <Text style={[type.small, { paddingVertical: space(4) }]}>
+            {state.cards.length + state.bills.length + state.vehicles.length === 0
+              ? 'Add cards, bills and vehicles and their due dates will show up here, with reminders.'
+              : 'Nothing due in the next 30 days.'}
+          </Text>
         ) : (
           upcoming.slice(0, 7).map((it, i, arr) => {
             const d = daysFromToday(it.dueDate);

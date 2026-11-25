@@ -14,7 +14,7 @@ const ICON: Record<PaymentKind, IconName> = {
 
 export default function ActivityScreen() {
   const { state } = useStore();
-  const acct = (id: string) => state.accounts.find((a) => a.id === id);
+  const acct = (id?: string) => state.accounts.find((a) => a.id === id);
 
   if (state.payments.length === 0) {
     return (
@@ -35,7 +35,7 @@ export default function ActivityScreen() {
               icon={ICON[p.kind]}
               iconColor={colors.good}
               title={p.title}
-              subtitle={`${shortDate(p.date)} · from ${a ? `${a.bank} •• ${a.last4}` : 'account'}`}
+              subtitle={`${shortDate(p.date)}${a ? ` · from ${a.bank} •• ${a.last4}` : ''}`}
               right={`-${inr(p.amount)}`}
               last={i === state.payments.length - 1}
             />

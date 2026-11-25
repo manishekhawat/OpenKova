@@ -1,24 +1,48 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import React, { createContext, useContext, useEffect, useMemo, useReducer, useState } from 'react';
+import React, { createContext, useContext, useEffect, useMemo, useReducer, useRef, useState } from 'react';
 import { addDays, uid } from '../utils/format';
-import { seedState } from './seed';
-import type { AppState, Bill, CreditCard, Payment, PaymentKind, User, Vehicle, BankAccount } from './types';
+import { defaultSettings, emptyState, seedState } from './seed';
+import type { AppState, BankAccount, Bill, CreditCard, PaymentKind, Payment, Settings, Transaction, User, Vehicle } from './types';
+import { loadState, saveState, wipeVault } from './vault';
 
-const STORAGE_KEY = 'kova/state/v1';
+export type SmsImport = {
+  transactions: Transaction[];
+  cardUpdates: { cardId: string; outstanding: number; minDue?: number; dueDate?: string; statementDate: string }[];
+  accountUpdates: { accountId: string; balance: number }[];
+  lastScan: number;
+};
 
 type Action =
   | { type: 'hydrate'; state: AppState }
-  | { type: 'login'; user: User }
-  | { type: 'logout' }
-  | { type: 'reset' }
+  | { type: 'onboard'; user: User; withSample: boolean }
+  | { type: 'rename'; name: string }
+  | { type: 'loadSample' }
+  | { type: 'erase' }
+  | { type: 'restore'; state: AppState }
+  | { type: 'settings'; patch: Partial<Settings> }
   | { type: 'addCard'; card: CreditCard }
+  | { type: 'updateCard'; card: CreditCard }
   | { type: 'removeCard'; id: string }
   | { type: 'addAccount'; account: BankAccount }
+  | { type: 'updateAccount'; account: BankAccount }
+  | { type: 'removeAccount'; id: string }
   | { type: 'addBill'; bill: Bill }
+  | { type: 'updateBill'; bill: Bill }
   | { type: 'removeBill'; id: string }
   | { type: 'addVehicle'; vehicle: Vehicle }
+  | { type: 'updateVehicle'; vehicle: Vehicle }
   | { type: 'removeVehicle'; id: string }
-  | { type: 'pay'; kind: PaymentKind; refId: string; subId?: string; amount: number; fromAccountId: string; title: string };
+  | { type: 'importSms'; data: SmsImport }
+  | { type: 'pay'; kind: PaymentKind; refId: string; subId?: string; amount: number; fromAccountId?: string; title: string };
+
+/** Fills in fields added after the first build so older saved data keeps working. */
+export function migrate(raw: Partial<AppState>): AppState {
+  const base = emptyState();
+  return {
+    ...base,
+    ...raw,
+    settings: { ...defaultSettings(), ...(raw.settings ?? {}) },
+  } as AppState;
+}
 
 function applyPayment(state: AppState, a: Extract<Action, { type: 'pay' }>): AppState {
   const now = new Date().toISOString();
@@ -61,34 +85,76 @@ function applyPayment(state: AppState, a: Extract<Action, { type: 'pay' }>): App
   return { ...state, accounts, cards, bills, vehicles, payments: [payment, ...state.payments] };
 }
 
+function replace<T extends { id: string }>(list: T[], item: T): T[] {
+  return list.map((x) => (x.id === item.id ? item : x));
+}
+
 function reducer(state: AppState, a: Action): AppState {
   switch (a.type) {
     case 'hydrate':
       return a.state;
-    case 'login':
+    case 'onboard': {
+      const base = a.withSample ? seedState() : emptyState();
+      const user = a.user;
       return {
-        ...state,
-        user: a.user,
-        cards: state.cards.map((c) => ({ ...c, holder: c.holder || a.user.name.toUpperCase() })),
+        ...base,
+        user,
+        settings: { ...base.settings, ...state.settings },
+        cards: base.cards.map((c) => ({ ...c, holder: user.name.toUpperCase() })),
       };
-    case 'logout':
-      return { ...state, user: null };
-    case 'reset':
-      return { ...seedState(), user: state.user };
+    }
+    case 'rename':
+      return state.user ? { ...state, user: { ...state.user, name: a.name } } : state;
+    case 'loadSample': {
+      const s = seedState();
+      return { ...s, user: state.user, settings: state.settings, cards: s.cards.map((c) => ({ ...c, holder: state.user?.name.toUpperCase() ?? '' })) };
+    }
+    case 'erase':
+      return emptyState();
+    case 'restore':
+      return { ...migrate(a.state), user: a.state.user ?? state.user };
+    case 'settings':
+      return { ...state, settings: { ...state.settings, ...a.patch } };
     case 'addCard':
       return { ...state, cards: [...state.cards, a.card] };
+    case 'updateCard':
+      return { ...state, cards: replace(state.cards, a.card) };
     case 'removeCard':
-      return { ...state, cards: state.cards.filter((c) => c.id !== a.id) };
+      return { ...state, cards: state.cards.filter((c) => c.id !== a.id), transactions: state.transactions.filter((t) => t.cardId !== a.id) };
     case 'addAccount':
       return { ...state, accounts: [...state.accounts, a.account] };
+    case 'updateAccount':
+      return { ...state, accounts: replace(state.accounts, a.account) };
+    case 'removeAccount':
+      return { ...state, accounts: state.accounts.filter((x) => x.id !== a.id) };
     case 'addBill':
       return { ...state, bills: [...state.bills, a.bill] };
+    case 'updateBill':
+      return { ...state, bills: replace(state.bills, a.bill) };
     case 'removeBill':
       return { ...state, bills: state.bills.filter((b) => b.id !== a.id) };
     case 'addVehicle':
       return { ...state, vehicles: [...state.vehicles, a.vehicle] };
+    case 'updateVehicle':
+      return { ...state, vehicles: replace(state.vehicles, a.vehicle) };
     case 'removeVehicle':
       return { ...state, vehicles: state.vehicles.filter((v) => v.id !== a.id) };
+    case 'importSms': {
+      const known = new Set(state.transactions.map((t) => t.id));
+      const fresh = a.data.transactions.filter((t) => !known.has(t.id));
+      const cards = state.cards.map((c) => {
+        const u = a.data.cardUpdates.find((x) => x.cardId === c.id);
+        return u
+          ? { ...c, outstanding: u.outstanding, minDue: u.minDue ?? c.minDue, dueDate: u.dueDate ?? c.dueDate, statementDate: u.statementDate }
+          : c;
+      });
+      const accounts = state.accounts.map((acc) => {
+        const u = a.data.accountUpdates.find((x) => x.accountId === acc.id);
+        return u ? { ...acc, balance: u.balance } : acc;
+      });
+      const transactions = [...fresh, ...state.transactions].sort((x, y) => +new Date(y.date) - +new Date(x.date));
+      return { ...state, cards, accounts, transactions, settings: { ...state.settings, smsLastScan: Math.max(state.settings.smsLastScan ?? 0, a.data.lastScan) } };
+    }
     case 'pay':
       return applyPayment(state, a);
   }
@@ -97,30 +163,54 @@ function reducer(state: AppState, a: Action): AppState {
 interface StoreValue {
   state: AppState;
   ready: boolean;
+  loadError: string | null;
   dispatch: React.Dispatch<Action>;
 }
 
 const StoreContext = createContext<StoreValue | null>(null);
 
 export function StoreProvider({ children }: { children: React.ReactNode }) {
-  const [state, dispatch] = useReducer(reducer, undefined, seedState);
+  const [state, dispatch] = useReducer(reducer, undefined, emptyState);
   const [ready, setReady] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const skipNextSave = useRef(true);
 
   useEffect(() => {
-    AsyncStorage.getItem(STORAGE_KEY)
-      .then((raw) => {
-        if (raw) dispatch({ type: 'hydrate', state: JSON.parse(raw) as AppState });
+    loadState<AppState>()
+      .then((saved) => {
+        if (saved) dispatch({ type: 'hydrate', state: migrate(saved) });
       })
-      .catch(() => {})
+      .catch((e) => setLoadError(String(e?.message ?? e)))
       .finally(() => setReady(true));
   }, []);
 
+  // Debounced encrypted save. Never save while a load error is showing, so a failed
+  // decrypt can't overwrite the user's file with an empty state.
   useEffect(() => {
-    if (!ready) return;
-    AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(state)).catch(() => {});
-  }, [state, ready]);
+    if (!ready || loadError) return;
+    if (skipNextSave.current) {
+      skipNextSave.current = false;
+      return;
+    }
+    const t = setTimeout(() => {
+      if (!state.user) wipeVault().catch(() => {});
+      else saveState(state).catch(() => {});
+    }, 400);
+    return () => clearTimeout(t);
+  }, [state, ready, loadError]);
 
-  const value = useMemo(() => ({ state, dispatch, ready }), [state, ready]);
+  const value = useMemo(
+    () => ({
+      state,
+      ready,
+      loadError,
+      dispatch: (a: Action) => {
+        if (a.type === 'erase') setLoadError(null);
+        dispatch(a);
+      },
+    }),
+    [state, ready, loadError],
+  );
   return <StoreContext.Provider value={value}>{children}</StoreContext.Provider>;
 }
 

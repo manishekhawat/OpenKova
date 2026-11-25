@@ -1,11 +1,11 @@
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import React, { useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
-import { Button, ListRow, Screen, SectionHeader, Surface } from '../components/ui';
+import { Button, DateField, Field, ListRow, Screen, SectionHeader, Surface } from '../components/ui';
 import { useStore } from '../data/store';
 import type { RootStackParamList } from '../navigation';
 import { colors, space, type } from '../theme';
-import { expiryLabel, inr, shortDate } from '../utils/format';
+import { expiryLabel, inr, shortDate, uid } from '../utils/format';
 import { NumberPlate, statusColor } from './GarageScreen';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'VehicleDetail'>;
@@ -14,6 +14,11 @@ export default function VehicleDetailScreen({ route, navigation }: Props) {
   const { state, dispatch } = useStore();
   const v = state.vehicles.find((x) => x.id === route.params.id);
   const [confirmRemove, setConfirmRemove] = useState(false);
+  const [adding, setAdding] = useState(false);
+  const [offence, setOffence] = useState('');
+  const [place, setPlace] = useState('');
+  const [fine, setFine] = useState('');
+  const [chDate, setChDate] = useState<string | undefined>(new Date().toISOString());
   if (!v) return <Screen padTop={false}><Text style={type.body}>This vehicle was removed.</Text></Screen>;
 
   const open = v.challans.filter((c) => !c.paidOn);
@@ -24,6 +29,7 @@ export default function VehicleDetailScreen({ route, navigation }: Props) {
       <Text style={type.title}>{v.make} {v.model}</Text>
       <Text style={[type.small, { marginTop: 2, marginBottom: space(4) }]}>{v.kind} · {v.year} · {v.fuel}</Text>
       <NumberPlate regNo={v.regNo} big />
+      <Button label="Edit vehicle & dates" variant="ghost" icon="create-outline" onPress={() => navigation.navigate('AddVehicle', { id: v.id })} style={{ marginTop: space(4) }} />
 
       <Surface style={{ marginTop: space(6) }}>
         <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -64,6 +70,31 @@ export default function VehicleDetailScreen({ route, navigation }: Props) {
           ))
         )}
       </Surface>
+      {adding ? (
+        <Surface style={{ marginTop: space(3) }}>
+          <Field label="Offence" value={offence} onChangeText={setOffence} placeholder="e.g. Signal jump" />
+          <Field label="Location" value={place} onChangeText={setPlace} placeholder="Optional" />
+          <Field label="Fine (₹)" value={fine} onChangeText={(t) => setFine(t.replace(/\D/g, ''))} keyboardType="number-pad" />
+          <DateField label="Date" value={chDate} onChange={setChDate} />
+          <Button
+            label="Save challan"
+            disabled={offence.trim().length < 2 || !(Number(fine) > 0) || !chDate}
+            onPress={() => {
+              dispatch({
+                type: 'updateVehicle',
+                vehicle: { ...v, challans: [{ id: uid('ch'), offence: offence.trim(), location: place.trim() || '—', amount: Number(fine), date: chDate! }, ...v.challans] },
+              });
+              setAdding(false);
+              setOffence('');
+              setPlace('');
+              setFine('');
+            }}
+          />
+        </Surface>
+      ) : (
+        <Button label="Add a challan" variant="ghost" icon="add" onPress={() => setAdding(true)} style={{ marginTop: space(3) }} />
+      )}
+      <Text style={[type.tiny, { marginTop: space(2) }]}>Check for new challans at echallan.parivahan.gov.in.</Text>
 
       <Pressable
         onPress={() => {

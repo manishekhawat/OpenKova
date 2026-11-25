@@ -18,6 +18,7 @@ export const CATEGORY_ICON: Record<SpendCategory, IconName> = {
   Entertainment: 'film-outline',
   Utilities: 'flash-outline',
   Health: 'medkit-outline',
+  Other: 'ellipsis-horizontal-circle-outline',
 };
 
 type Props = NativeStackScreenProps<RootStackParamList, 'CardDetail'>;
@@ -40,7 +41,7 @@ export default function CardDetailScreen({ route, navigation }: Props) {
 
   return (
     <Screen padTop={false}>
-      <CreditCardView card={card} />
+      <CreditCardView card={card} onPress={() => navigation.navigate('AddCard', { id: card.id })} />
 
       <Surface style={{ marginTop: space(5) }}>
         <View style={{ flexDirection: 'row' }}>
@@ -62,7 +63,8 @@ export default function CardDetailScreen({ route, navigation }: Props) {
       ) : (
         <Text style={[type.small, { textAlign: 'center', marginTop: space(4), color: colors.good }]}>Nothing to pay. Next statement {shortDate(card.statementDate)}.</Text>
       )}
-      {card.outstanding > 0 && <Text style={[type.tiny, { textAlign: 'center', marginTop: 8 }]}>{dueLabel(card.dueDate)} · statement generated {shortDate(card.statementDate)}</Text>}
+      {card.outstanding > 0 && <Text style={[type.tiny, { textAlign: 'center', marginTop: 8 }]}>{dueLabel(card.dueDate)} · statement {shortDate(card.statementDate)}</Text>}
+      <Button label="Update statement or edit card" variant="ghost" icon="create-outline" onPress={() => navigation.navigate('AddCard', { id: card.id })} style={{ marginTop: space(3) }} />
 
       <SectionHeader title="Recent transactions" action="Insights" onAction={() => navigation.navigate('Insights', { cardId: card.id })} />
       <Surface style={{ paddingVertical: space(1) }}>

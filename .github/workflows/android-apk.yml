@@ -40,12 +40,28 @@ jobs:
       - name: Install JS dependencies
         run: npm ci
 
+      - name: Typecheck and unit tests
+        run: |
+          npx tsc --noEmit
+          npm test
+
       - name: Generate native Android project
         run: npx expo prebuild --platform android --no-install --clean
 
       - name: Build release APK (arm64)
         working-directory: android
-        run: ./gradlew assembleRelease -PreactNativeArchitectures=arm64-v8a --no-daemon
+        run: |
+          set -o pipefail
+          ./gradlew assembleRelease -PreactNativeArchitectures=arm64-v8a --no-daemon 2>&1 | tee ../gradle.log
+
+      # Surface the compiler errors as a public annotation (job logs need a GitHub login to read).
+      - name: Report build errors
+        if: failure()
+        run: |
+          [ -f gradle.log ] || exit 0
+          msg=$( (grep -E "^e: |error:|What went wrong|FAILURE|Exception" -A3 gradle.log || tail -n 40 gradle.log) | head -n 60 )
+          msg="${msg//'%'/'%25'}"; msg="${msg//$'\n'/'%0A'}"; msg="${msg//$'\r'/'%0D'}"
+          echo "::error title=Gradle build failed::$msg"
 
       - name: Rename APK
         run: cp android/app/build/outputs/apk/release/app-release.apk kova-${{ github.run_number }}.apk

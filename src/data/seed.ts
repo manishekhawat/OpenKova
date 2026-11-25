@@ -1,9 +1,11 @@
 import { addDays } from '../utils/format';
-import type { AppState, SpendCategory, Transaction } from './types';
+import type { AppState, Settings, SpendCategory, Transaction } from './types';
 
-// Sample data for the demo. Dates are relative to today so the app always looks "live".
+// Sample data for trying the app out (Settings → Load sample data). Dates are relative to today so the app always looks "live".
 
-const MERCHANTS: Record<SpendCategory, string[]> = {
+type SampleCategory = Exclude<SpendCategory, 'Other'>;
+
+const MERCHANTS: Record<SampleCategory, string[]> = {
   Food: ['Swiggy', 'Zomato', 'Blue Tokai', 'Third Wave Coffee'],
   Shopping: ['Amazon', 'Myntra', 'Flipkart', 'Croma'],
   Travel: ['IndiGo', 'IRCTC', 'Uber', 'MakeMyTrip'],
@@ -14,7 +16,7 @@ const MERCHANTS: Record<SpendCategory, string[]> = {
   Health: ['Apollo Pharmacy', 'PharmEasy', 'Cult.fit'],
 };
 
-const RANGES: Record<SpendCategory, [number, number]> = {
+const RANGES: Record<SampleCategory, [number, number]> = {
   Food: [180, 1400],
   Shopping: [600, 9000],
   Travel: [250, 12000],
@@ -36,7 +38,7 @@ function rng(seed: number) {
 
 function makeTransactions(cardIds: string[]): Transaction[] {
   const r = rng(42);
-  const cats = Object.keys(MERCHANTS) as SpendCategory[];
+  const cats = Object.keys(MERCHANTS) as SampleCategory[];
   const out: Transaction[] = [];
   for (let day = 0; day < 180; day++) {
     const perDay = r() < 0.55 ? 1 : r() < 0.5 ? 2 : 0;
@@ -51,6 +53,7 @@ function makeTransactions(cardIds: string[]): Transaction[] {
         category,
         amount: Math.round(lo + r() * (hi - lo)),
         date: addDays(-day),
+        source: 'sample',
       });
     }
   }
@@ -156,5 +159,15 @@ export function seedState(): AppState {
     ],
     transactions: makeTransactions(cards.map((c) => c.id)),
     payments: [],
+    settings: defaultSettings(),
   };
+}
+
+export function defaultSettings(): Settings {
+  return { lockEnabled: false, remindersEnabled: true, reminderDaysBefore: [3, 1, 0], reminderHour: 9 };
+}
+
+/** What a real user starts with: nothing but their name. */
+export function emptyState(): AppState {
+  return { user: null, cards: [], accounts: [], bills: [], vehicles: [], transactions: [], payments: [], settings: defaultSettings() };
 }

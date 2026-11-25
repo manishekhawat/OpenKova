@@ -1,12 +1,14 @@
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
-import React, { useState } from 'react';
+import React, { useLayoutEffect, useState } from 'react';
 import { KeyboardAvoidingView, Platform, Text, View } from 'react-native';
 import { CreditCardView } from '../components/CreditCardView';
-import { Button, Chips, Field, Screen } from '../components/ui';
+import { Button, Chips, DateField, Field, Screen, SectionHeader } from '../components/ui';
+import { bankLinks } from '../data/banks';
 import { useStore } from '../data/store';
 import type { CreditCard, Network } from '../data/types';
 import type { RootStackParamList } from '../navigation';
-import { space, type } from '../theme';
+import { normaliseUrl } from '../services/openPay';
+import { colors, space, type } from '../theme';
 import { addDays, uid } from '../utils/format';
 
 const NETWORKS: readonly Network[] = ['Visa', 'Mastercard', 'RuPay', 'Amex', 'Diners'];
@@ -20,45 +22,64 @@ const PALETTES: [string, string][] = [
 
 type Props = NativeStackScreenProps<RootStackParamList, 'AddCard'>;
 
-export default function AddCardScreen({ navigation }: Props) {
+const money = (n?: number) => (n ? String(n) : '');
+
+export default function AddCardScreen({ navigation, route }: Props) {
   const { state, dispatch } = useStore();
-  const [bank, setBank] = useState('');
-  const [name, setName] = useState('');
-  const [last4, setLast4] = useState('');
-  const [network, setNetwork] = useState<Network>('Visa');
-  const [limit, setLimit] = useState('');
-  const [outstanding, setOutstanding] = useState('');
-  const [dueDay, setDueDay] = useState('');
+  const existing = state.cards.find((c) => c.id === route.params?.id);
+  const editing = !!existing;
+
+  useLayoutEffect(() => {
+    navigation.setOptions({ title: editing ? 'Edit card' : 'Add a credit card' });
+  }, [navigation, editing]);
+
+  const [bank, setBank] = useState(existing?.bank ?? '');
+  const [name, setName] = useState(existing?.name ?? '');
+  const [last4, setLast4] = useState(existing?.last4 ?? '');
+  const [network, setNetwork] = useState<Network>(existing?.network ?? 'Visa');
+  const [limit, setLimit] = useState(money(existing?.limit));
+  const [outstanding, setOutstanding] = useState(money(existing?.outstanding));
+  const [minDue, setMinDue] = useState(money(existing?.minDue));
+  const [dueDate, setDueDate] = useState<string | undefined>(existing?.dueDate ?? addDays(20));
+  const [payUrl, setPayUrl] = useState(existing?.payUrl ?? '');
+  const [payApp, setPayApp] = useState(existing?.payApp ?? '');
   const [tried, setTried] = useState(false);
 
+  const out = Number(outstanding || 0);
   const errors = {
     bank: bank.trim().length < 2 ? 'Enter the bank name' : '',
     last4: !/^\d{4}$/.test(last4) ? 'Enter the last 4 digits' : '',
     limit: !(Number(limit) > 0) ? 'Enter the credit limit' : '',
-    outstanding: Number(outstanding || 0) > Number(limit || 0) ? 'Outstanding is above the limit' : '',
-    dueDay: dueDay && !(Number(dueDay) >= 0 && Number(dueDay) <= 60) ? 'Use 0–60 days' : '',
+    outstanding: out > Number(limit || 0) * 1.2 ? 'Outstanding looks higher than the limit' : '',
+    minDue: Number(minDue || 0) > out ? "Minimum can't be more than the total" : '',
+    dueDate: !dueDate ? 'Enter a valid date' : '',
+    payApp: payApp && !/^[a-zA-Z][\w]*(\.[\w]+)+$/.test(payApp.trim()) ? 'Looks like com.bank.app' : '',
   };
   const valid = Object.values(errors).every((e) => !e);
+  const preset = bankLinks(bank);
 
-  const preview: CreditCard = {
-    id: 'preview',
-    bank: bank || 'Your bank',
-    name: name || 'Card name',
+  const card: CreditCard = {
+    id: existing?.id ?? 'preview',
+    bank: bank.trim() || 'Your bank',
+    name: name.trim() || 'Credit Card',
     network,
     last4: last4.padEnd(4, '•'),
     holder: state.user?.name.toUpperCase() ?? '',
     limit: Number(limit) || 0,
-    outstanding: Number(outstanding) || 0,
-    minDue: Math.round((Number(outstanding) || 0) * 0.05),
-    dueDate: addDays(Number(dueDay) || 20),
-    statementDate: addDays((Number(dueDay) || 20) - 20),
-    palette: PALETTES[state.cards.length % PALETTES.length],
+    outstanding: out,
+    minDue: minDue ? Number(minDue) : Math.round(out * 0.05),
+    dueDate: dueDate ?? addDays(20),
+    statementDate: existing?.statementDate ?? addDays(-1),
+    palette: existing?.palette ?? PALETTES[state.cards.length % PALETTES.length],
+    payUrl: normaliseUrl(payUrl),
+    payApp: payApp.trim() || undefined,
   };
 
   const save = () => {
     setTried(true);
     if (!valid) return;
-    dispatch({ type: 'addCard', card: { ...preview, id: uid('c'), last4, bank: bank.trim(), name: name.trim() || 'Credit Card' } });
+    if (editing) dispatch({ type: 'updateCard', card: { ...card, last4 } });
+    else dispatch({ type: 'addCard', card: { ...card, id: uid('c'), last4 } });
     navigation.goBack();
   };
 
@@ -67,25 +88,51 @@ export default function AddCardScreen({ navigation }: Props) {
   return (
     <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       <Screen padTop={false}>
-        <CreditCardView card={preview} />
+        <CreditCardView card={card} />
         <Text style={[type.tiny, { marginTop: space(3), marginBottom: space(5) }]}>
-          We only store the last 4 digits. Never enter your full card number, CVV or PIN.
+          Kova only stores the last 4 digits. Never enter your full card number, CVV or PIN anywhere but your bank.
         </Text>
         <Field label="Bank" value={bank} onChangeText={setBank} placeholder="e.g. ICICI Bank" error={err('bank')} />
         <Field label="Card name (optional)" value={name} onChangeText={setName} placeholder="e.g. Amazon Pay" />
         <Field label="Last 4 digits" value={last4} onChangeText={(t) => setLast4(t.replace(/\D/g, '').slice(0, 4))} keyboardType="number-pad" placeholder="1234" error={err('last4')} />
         <Text style={[type.small, { marginBottom: 6 }]}>Network</Text>
         <Chips options={NETWORKS} value={network} onChange={setNetwork} />
+        <Field label="Credit limit (₹)" value={limit} onChangeText={(t) => setLimit(t.replace(/\D/g, ''))} keyboardType="number-pad" placeholder="200000" error={err('limit')} />
+
+        <SectionHeader title="Current statement" />
         <View style={{ flexDirection: 'row', gap: 12 }}>
           <View style={{ flex: 1 }}>
-            <Field label="Credit limit (₹)" value={limit} onChangeText={(t) => setLimit(t.replace(/\D/g, ''))} keyboardType="number-pad" placeholder="200000" error={err('limit')} />
+            <Field label="Total due (₹)" value={outstanding} onChangeText={(t) => setOutstanding(t.replace(/[^\d.]/g, ''))} keyboardType="decimal-pad" placeholder="0" error={err('outstanding')} />
           </View>
           <View style={{ flex: 1 }}>
-            <Field label="Outstanding (₹)" value={outstanding} onChangeText={(t) => setOutstanding(t.replace(/[^\d.]/g, ''))} keyboardType="decimal-pad" placeholder="0" error={err('outstanding')} />
+            <Field label="Minimum due (₹)" value={minDue} onChangeText={(t) => setMinDue(t.replace(/[^\d.]/g, ''))} keyboardType="decimal-pad" placeholder="5% of total" error={err('minDue')} />
           </View>
         </View>
-        <Field label="Bill due in (days)" value={dueDay} onChangeText={(t) => setDueDay(t.replace(/\D/g, ''))} keyboardType="number-pad" placeholder="20" error={err('dueDay')} />
-        <Button label="Add card" onPress={save} style={{ marginTop: space(2) }} />
+        <DateField label="Payment due date" value={dueDate} onChange={setDueDate} error={err('dueDate')} />
+        <Text style={[type.tiny, { marginTop: -8, marginBottom: space(2) }]}>On Android, Kova can fill these from your bank's statement SMS (Settings → Read bank SMS).</Text>
+
+        <SectionHeader title="Where you pay this card" />
+        <Field
+          label="Website (optional)"
+          value={payUrl}
+          onChangeText={setPayUrl}
+          autoCapitalize="none"
+          keyboardType="url"
+          placeholder={preset?.url ?? 'netbanking.yourbank.com'}
+        />
+        <Field
+          label="Android app package (optional)"
+          value={payApp}
+          onChangeText={setPayApp}
+          autoCapitalize="none"
+          placeholder={preset?.app ?? 'com.yourbank.mobile'}
+          error={err('payApp')}
+        />
+        <Text style={[type.tiny, { marginTop: -8, marginBottom: space(5), color: preset ? colors.good : colors.faint }]}>
+          {preset ? `Leave blank to use ${preset.label}${preset.app ? "'s app" : "'s website"}.` : 'The package is in the Play Store link: play.google.com/store/apps/details?id=…'}
+        </Text>
+
+        <Button label={editing ? 'Save changes' : 'Add card'} onPress={save} />
       </Screen>
     </KeyboardAvoidingView>
   );

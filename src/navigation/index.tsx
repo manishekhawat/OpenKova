@@ -2,11 +2,14 @@ import { Ionicons } from '@expo/vector-icons';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { DarkTheme, NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import React from 'react';
-import { ActivityIndicator, View } from 'react-native';
+import React, { useEffect } from 'react';
+import { ActivityIndicator, Text, View } from 'react-native';
+import { LockGate } from '../components/LockGate';
+import { Button } from '../components/ui';
 import { useStore } from '../data/store';
 import type { PaymentKind } from '../data/types';
-import { colors } from '../theme';
+import { rescheduleReminders } from '../services/reminders';
+import { colors, space, type } from '../theme';
 
 import AccountsScreen from '../screens/AccountsScreen';
 import ActivityScreen from '../screens/ActivityScreen';
@@ -20,9 +23,10 @@ import CardsScreen from '../screens/CardsScreen';
 import GarageScreen from '../screens/GarageScreen';
 import HomeScreen from '../screens/HomeScreen';
 import InsightsScreen from '../screens/InsightsScreen';
-import LoginScreen from '../screens/LoginScreen';
+import OnboardingScreen from '../screens/OnboardingScreen';
 import PayScreen from '../screens/PayScreen';
-import ProfileScreen from '../screens/ProfileScreen';
+import SettingsScreen from '../screens/SettingsScreen';
+import SmsImportScreen from '../screens/SmsImportScreen';
 import VehicleDetailScreen from '../screens/VehicleDetailScreen';
 
 export type TabParamList = {
@@ -34,18 +38,19 @@ export type TabParamList = {
 };
 
 export type RootStackParamList = {
-  Login: undefined;
+  Onboarding: undefined;
   Tabs: undefined;
   CardDetail: { id: string };
-  AddCard: undefined;
-  AddBill: undefined;
-  AddVehicle: undefined;
-  AddAccount: undefined;
+  AddCard: { id?: string } | undefined;
+  AddBill: { id?: string } | undefined;
+  AddVehicle: { id?: string } | undefined;
+  AddAccount: { id?: string } | undefined;
   VehicleDetail: { id: string };
   Pay: { kind: PaymentKind; refId: string; subId?: string };
   Insights: { cardId?: string } | undefined;
-  Profile: undefined;
+  Settings: undefined;
   Activity: undefined;
+  SmsImport: undefined;
 };
 
 declare global {
@@ -94,8 +99,39 @@ const navTheme = {
   colors: { ...DarkTheme.colors, background: colors.bg, card: colors.bg, text: colors.ink, border: colors.line, primary: colors.accent },
 };
 
+/** Keeps the phone's scheduled reminders in step with Kova's data. */
+function ReminderSync() {
+  const { state } = useStore();
+  const { user, cards, bills, vehicles, settings } = state;
+  useEffect(() => {
+    const t = setTimeout(() => {
+      rescheduleReminders(state).catch(() => {});
+    }, 1500);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user, cards, bills, vehicles, settings]);
+  return null;
+}
+
+function LoadError({ message }: { message: string }) {
+  const { dispatch } = useStore();
+  const [sure, setSure] = React.useState(false);
+  return (
+    <View style={{ flex: 1, backgroundColor: colors.bg, justifyContent: 'center', padding: space(8) }}>
+      <Text style={type.title}>Couldn't open your data</Text>
+      <Text style={[type.small, { marginTop: space(3), fontSize: 15, lineHeight: 22 }]}>
+        Kova couldn't decrypt the data on this phone ({message}). This can happen if the phone's secure keystore was reset.
+        You can start again and restore from a backup in Settings.
+      </Text>
+      <Button label={sure ? 'Tap again to erase and start over' : 'Start over'} variant="danger" onPress={() => (sure ? dispatch({ type: 'erase' }) : setSure(true))} style={{ marginTop: space(8) }} />
+    </View>
+  );
+}
+
 export default function RootNavigator() {
-  const { state, ready } = useStore();
+  const { state, ready, loadError } = useStore();
+
+  if (loadError) return <LoadError message={loadError} />;
 
   if (!ready) {
     return (
@@ -106,6 +142,8 @@ export default function RootNavigator() {
   }
 
   return (
+    <LockGate>
+    <ReminderSync />
     <NavigationContainer theme={navTheme}>
       <Stack.Navigator
         screenOptions={{
@@ -117,25 +155,27 @@ export default function RootNavigator() {
         }}
       >
         {!state.user ? (
-          <Stack.Screen name="Login" component={LoginScreen} options={{ headerShown: false }} />
+          <Stack.Screen name="Onboarding" component={OnboardingScreen} options={{ headerShown: false }} />
         ) : (
           <>
             <Stack.Screen name="Tabs" component={Tabs} options={{ headerShown: false }} />
             <Stack.Screen name="CardDetail" component={CardDetailScreen} options={{ title: '' }} />
             <Stack.Screen name="VehicleDetail" component={VehicleDetailScreen} options={{ title: '' }} />
             <Stack.Screen name="Insights" component={InsightsScreen} options={{ title: 'Spend insights' }} />
-            <Stack.Screen name="Profile" component={ProfileScreen} options={{ title: 'Profile' }} />
+            <Stack.Screen name="Settings" component={SettingsScreen} options={{ title: 'Settings' }} />
+            <Stack.Screen name="SmsImport" component={SmsImportScreen} options={{ title: '' }} />
             <Stack.Screen name="Activity" component={ActivityScreen} options={{ title: 'Payment history' }} />
             <Stack.Group screenOptions={{ presentation: 'modal' }}>
               <Stack.Screen name="Pay" component={PayScreen} options={{ title: 'Pay' }} />
               <Stack.Screen name="AddCard" component={AddCardScreen} options={{ title: 'Add a credit card' }} />
               <Stack.Screen name="AddBill" component={AddBillScreen} options={{ title: 'Add a biller' }} />
               <Stack.Screen name="AddVehicle" component={AddVehicleScreen} options={{ title: 'Add a vehicle' }} />
-              <Stack.Screen name="AddAccount" component={AddAccountScreen} options={{ title: 'Link a bank account' }} />
+              <Stack.Screen name="AddAccount" component={AddAccountScreen} options={{ title: 'Add a bank account' }} />
             </Stack.Group>
           </>
         )}
       </Stack.Navigator>
     </NavigationContainer>
+    </LockGate>
   );
 }

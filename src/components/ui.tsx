@@ -6,6 +6,7 @@ import {
   Pressable,
   ScrollView,
   StyleSheet,
+  Switch,
   Text,
   TextInput,
   TextInputProps,
@@ -165,6 +166,53 @@ export function Field({ label, error, ...props }: TextInputProps & { label: stri
         style={[styles.input, error ? { borderColor: colors.bad } : null, props.style]}
       />
       {error ? <Text style={{ color: colors.bad, fontSize: 12, marginTop: 4 }}>{error}</Text> : null}
+    </View>
+  );
+}
+
+/** DD-MM-YYYY text input; calls onChange with an ISO date (or undefined while invalid). */
+export function DateField({ label, value, onChange, error }: { label: string; value?: string; onChange: (iso: string | undefined) => void; error?: string }) {
+  const [text, setText] = React.useState(value ? toDMY(value) : '');
+  return (
+    <Field
+      label={label}
+      value={text}
+      placeholder="DD-MM-YYYY"
+      keyboardType="number-pad"
+      maxLength={10}
+      error={error}
+      onChangeText={(t) => {
+        const digits = t.replace(/\D/g, '').slice(0, 8);
+        const formatted = [digits.slice(0, 2), digits.slice(2, 4), digits.slice(4)].filter(Boolean).join('-');
+        setText(formatted);
+        const m = formatted.match(/^(\d{2})-(\d{2})-(\d{4})$/);
+        if (!m) return onChange(undefined);
+        const d = new Date(Number(m[3]), Number(m[2]) - 1, Number(m[1]), 12);
+        onChange(d.getDate() === Number(m[1]) && d.getMonth() === Number(m[2]) - 1 ? d.toISOString() : undefined);
+      }}
+    />
+  );
+}
+
+export function toDMY(iso: string): string {
+  const d = new Date(iso);
+  return `${String(d.getDate()).padStart(2, '0')}-${String(d.getMonth() + 1).padStart(2, '0')}-${d.getFullYear()}`;
+}
+
+export function ToggleRow({ title, subtitle, value, onChange, disabled, last }: { title: string; subtitle?: string; value: boolean; onChange: (v: boolean) => void; disabled?: boolean; last?: boolean }) {
+  return (
+    <View style={[styles.listRow, !last && styles.divider, disabled && { opacity: 0.5 }]}>
+      <View style={{ flex: 1, marginRight: space(3) }}>
+        <Text style={type.body}>{title}</Text>
+        {subtitle ? <Text style={[type.small, { marginTop: 2 }]}>{subtitle}</Text> : null}
+      </View>
+      <Switch
+        value={value}
+        onValueChange={onChange}
+        disabled={disabled}
+        trackColor={{ false: colors.line, true: colors.accent }}
+        thumbColor={colors.ink}
+      />
     </View>
   );
 }

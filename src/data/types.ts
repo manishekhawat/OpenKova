@@ -13,6 +13,8 @@ export interface CreditCard {
   dueDate: string; // ISO
   statementDate: string; // ISO
   palette: [string, string];
+  payApp?: string; // Android package of the app used to pay this card
+  payUrl?: string; // website used to pay this card
 }
 
 export interface BankAccount {
@@ -43,6 +45,7 @@ export interface Bill {
   amount: number;
   dueDate: string;
   paidOn?: string;
+  payUrl?: string;
 }
 
 export interface Challan {
@@ -78,7 +81,8 @@ export type SpendCategory =
   | 'Groceries'
   | 'Entertainment'
   | 'Utilities'
-  | 'Health';
+  | 'Health'
+  | 'Other';
 
 export interface Transaction {
   id: string;
@@ -87,6 +91,7 @@ export interface Transaction {
   category: SpendCategory;
   amount: number;
   date: string;
+  source?: 'sms' | 'manual' | 'sample';
 }
 
 export type PaymentKind = 'card' | 'bill' | 'challan' | 'fastag';
@@ -97,13 +102,21 @@ export interface Payment {
   refId: string;
   title: string;
   amount: number;
-  fromAccountId: string;
+  fromAccountId?: string;
   date: string;
 }
 
 export interface User {
   name: string;
-  phone: string;
+  phone?: string;
+}
+
+export interface Settings {
+  lockEnabled: boolean;
+  remindersEnabled: boolean;
+  reminderDaysBefore: number[]; // e.g. [3, 1, 0]
+  reminderHour: number; // local hour, 0-23
+  smsLastScan?: number; // epoch ms of newest SMS already scanned
 }
 
 export interface AppState {
@@ -114,4 +127,5 @@ export interface AppState {
   vehicles: Vehicle[];
   transactions: Transaction[];
   payments: Payment[];
+  settings: Settings;
 }
