@@ -73,12 +73,16 @@ jobs:
           path: kova-${{ github.run_number }}.apk
 
       - name: Publish as a GitHub release (easy phone download)
-        uses: softprops/action-gh-release@v2
-        with:
-          tag_name: build-${{ github.run_number }}
-          name: Kova test build ${{ github.run_number }}
-          body: |
-            Test APK built from ${{ github.sha }}.
-            Install on an Android phone (allow "install unknown apps"). Demo OTP: 123456.
-          files: kova-${{ github.run_number }}.apk
-          prerelease: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: build-${{ github.run_number }}
+          APK: kova-${{ github.run_number }}.apk
+        run: |
+          gh release create "$TAG" --prerelease --target "$GITHUB_SHA" \
+            --title "Kova test build ${{ github.run_number }}" \
+            --notes "APK built from $GITHUB_SHA. Install on Android (allow 'Install unknown apps')."
+          for attempt in 1 2 3; do
+            gh release upload "$TAG" "$APK" --clobber && exit 0
+            echo "Upload failed (attempt $attempt), retrying in 15s"; sleep 15
+          done
+          exit 1
