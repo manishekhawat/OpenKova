@@ -5,6 +5,7 @@
 import type { AppState, BankAccount, Bill, Challan, CreditCard, Payment, Transaction, Vehicle } from '../data/types';
 import { daysFromToday } from '../utils/format';
 import { guessCategory, parseSms, type ParsedSms, type Sms } from './parse';
+import { CARD_PALETTES as PALETTES } from '../cards/palettes';
 
 export type SmsChanges = {
   newCards: CreditCard[];
@@ -26,13 +27,6 @@ export type ImportPreview = {
   summary: { cardsUpdated: number; accountsUpdated: number; vehiclesUpdated: number; spends: number; payments: number };
 };
 
-const PALETTES: [string, string][] = [
-  ['#2B2B33', '#0E0E12'],
-  ['#3A1E4A', '#14091C'],
-  ['#0F3B3A', '#06171A'],
-  ['#4A2A12', '#1A0E06'],
-  ['#1B2C55', '#0A1022'],
-];
 
 type P<K extends ParsedSms['kind']> = Extract<ParsedSms, { kind: K }>;
 const iso = (ms: number) => new Date(ms).toISOString();

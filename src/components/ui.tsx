@@ -14,7 +14,7 @@ import {
   ViewStyle,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { colors, radius, space, type } from '../theme';
+import { colors, fonts, radius, space, type } from '../theme';
 
 export type IconName = React.ComponentProps<typeof Ionicons>['name'];
 
@@ -37,8 +37,12 @@ export function Screen({
   );
 }
 
-export function Surface({ children, style }: { children: React.ReactNode; style?: ViewStyle | ViewStyle[] }) {
-  return <View style={[styles.surface, style]}>{children}</View>;
+/**
+ * A group of rows. Flush on the page by default (rows carry their own dividers);
+ * `boxed` is for things that are a distinct object, like a confirmation or a form inside a page.
+ */
+export function Surface({ children, style, boxed }: { children: React.ReactNode; style?: ViewStyle | ViewStyle[]; boxed?: boolean }) {
+  return <View style={[boxed ? styles.sheet : styles.flush, style]}>{children}</View>;
 }
 
 export function Button({
@@ -70,9 +74,9 @@ export function Button({
       }}
       style={({ pressed }) => [
         styles.btn,
-        primary ? { backgroundColor: colors.accent } : { backgroundColor: colors.surfaceHi, borderColor: colors.line, borderWidth: 1 },
+        primary ? { backgroundColor: colors.accent } : { borderColor: variant === 'danger' ? colors.bad + '66' : colors.line, borderWidth: 1 },
         (disabled || loading) && { opacity: 0.4 },
-        pressed && { transform: [{ scale: 0.98 }], opacity: 0.9 },
+        pressed && { opacity: 0.75 },
         style,
       ]}
     >
@@ -94,14 +98,14 @@ export function SectionHeader({ title, action, onAction }: { title: string; acti
       <Text style={type.h3}>{title}</Text>
       {action && (
         <Pressable onPress={onAction} hitSlop={12}>
-          <Text style={{ color: colors.accent, fontSize: 14, fontWeight: '600' }}>{action}</Text>
+          <Text style={{ color: colors.accent, fontSize: 14, fontFamily: fonts.semibold }}>{action}</Text>
         </Pressable>
       )}
     </View>
   );
 }
 
-export function IconBadge({ name, color = colors.ink, bg = colors.surfaceHi, size = 40 }: { name: IconName; color?: string; bg?: string; size?: number }) {
+export function IconBadge({ name, color = colors.ink, bg = 'transparent', size = 40 }: { name: IconName; color?: string; bg?: string; size?: number }) {
   return (
     <View style={{ width: size, height: size, borderRadius: size / 2.6, backgroundColor: bg, alignItems: 'center', justifyContent: 'center' }}>
       <Ionicons name={name} size={size * 0.48} color={color} />
@@ -136,7 +140,7 @@ export function ListRow({
       disabled={!onPress}
       style={({ pressed }) => [styles.listRow, !last && styles.divider, pressed && { opacity: 0.6 }]}
     >
-      <IconBadge name={icon} color={iconColor} />
+      <Ionicons name={icon} size={22} color={iconColor ?? colors.muted} style={{ width: 26 }} />
       <View style={{ flex: 1, marginLeft: space(3) }}>
         <Text style={type.body} numberOfLines={1}>
           {title}
@@ -148,7 +152,7 @@ export function ListRow({
         ) : null}
       </View>
       <View style={{ alignItems: 'flex-end', marginLeft: space(2) }}>
-        {right ? <Text style={[type.body, { fontWeight: '600', fontVariant: ['tabular-nums'] }]}>{right}</Text> : null}
+        {right ? <Text style={[type.body, { fontFamily: fonts.semibold, fontVariant: ['tabular-nums'] }]}>{right}</Text> : null}
         {rightSub ? <Text style={[type.small, { marginTop: 2, color: rightSubColor ?? colors.muted }]}>{rightSub}</Text> : null}
       </View>
     </Pressable>
@@ -165,7 +169,7 @@ export function Field({ label, error, ...props }: TextInputProps & { label: stri
         {...props}
         style={[styles.input, error ? { borderColor: colors.bad } : null, props.style]}
       />
-      {error ? <Text style={{ color: colors.bad, fontSize: 12, marginTop: 4 }}>{error}</Text> : null}
+      {error ? <Text style={[type.tiny, { color: colors.bad, marginTop: 4 }]}>{error}</Text> : null}
     </View>
   );
 }
@@ -235,7 +239,7 @@ export function Chips<T extends string>({ options, value, onChange }: { options:
             onPress={() => onChange(o)}
             style={[styles.chip, on && { backgroundColor: colors.accent, borderColor: colors.accent }]}
           >
-            <Text style={{ color: on ? colors.accentInk : colors.ink, fontSize: 13, fontWeight: '600' }}>{o}</Text>
+            <Text style={{ color: on ? colors.accentInk : colors.ink, fontSize: 13, fontFamily: fonts.semibold }}>{o}</Text>
           </Pressable>
         );
       })}
@@ -246,7 +250,7 @@ export function Chips<T extends string>({ options, value, onChange }: { options:
 export function Pill({ label, color }: { label: string; color: string }) {
   return (
     <View style={{ borderRadius: 99, paddingHorizontal: 10, paddingVertical: 4, backgroundColor: color + '22', alignSelf: 'flex-start' }}>
-      <Text style={{ color, fontSize: 12, fontWeight: '600' }}>{label}</Text>
+      <Text style={{ color, fontSize: 12, fontFamily: fonts.semibold }}>{label}</Text>
     </View>
   );
 }
@@ -271,20 +275,22 @@ export function Empty({ icon, text }: { icon: IconName; text: string }) {
 
 export const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.bg },
-  surface: { backgroundColor: colors.surface, borderRadius: radius.lg, padding: space(4), borderWidth: 1, borderColor: colors.line },
+  flush: {},
+  sheet: { backgroundColor: colors.surface, borderRadius: radius.lg, padding: space(4) },
   row: { flexDirection: 'row', alignItems: 'center' },
-  btn: { height: 54, borderRadius: radius.md, alignItems: 'center', justifyContent: 'center', paddingHorizontal: space(5) },
-  btnText: { fontSize: 16, fontWeight: '700' },
-  listRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: space(3) },
+  btn: { height: 52, borderRadius: radius.md, alignItems: 'center', justifyContent: 'center', paddingHorizontal: space(5) },
+  btnText: { fontSize: 16, fontFamily: fonts.semibold },
+  listRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: space(3.5), minHeight: 56 },
   divider: { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.line },
   input: {
     height: 52,
-    borderRadius: radius.md,
+    borderRadius: radius.sm,
     backgroundColor: colors.surface,
     borderWidth: 1,
     borderColor: colors.line,
     color: colors.ink,
-    fontSize: 16,
+    fontFamily: fonts.regular,
+    fontSize: 17,
     paddingHorizontal: space(4),
   },
   chip: { paddingHorizontal: 14, paddingVertical: 9, borderRadius: 99, borderWidth: 1, borderColor: colors.line, backgroundColor: colors.surface },

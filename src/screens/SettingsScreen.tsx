@@ -9,7 +9,7 @@ import { useStore } from '../data/store';
 import type { RootStackParamList } from '../navigation';
 import { exportBackup, pickBackup } from '../services/backup';
 import { ensureReminderPermission, rescheduleReminders } from '../services/reminders';
-import { colors, radius, space, type } from '../theme';
+import { colors, fonts, radius, space, type } from '../theme';
 import { shortDate } from '../utils/format';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Settings'>;
@@ -102,7 +102,7 @@ export default function SettingsScreen({ navigation }: Props) {
 
   return (
     <Screen padTop={false}>
-      {message ? <Text style={{ color: colors.accent, marginBottom: space(3) }}>{message}</Text> : null}
+      {message ? <Text style={{ fontFamily: fonts.regular, fontSize: 15, lineHeight: 20, color: colors.accent, marginBottom: space(3) }}>{message}</Text> : null}
 
       <Field
         label="Your name"
@@ -196,7 +196,7 @@ export default function SettingsScreen({ navigation }: Props) {
           dispatch({ type: 'erase' });
         })}
 
-      <Text style={[type.tiny, { textAlign: 'center', marginTop: space(8) }]}>Kova · personal build · everything stays on this phone</Text>
+      <Text style={[type.tiny, { textAlign: 'center', marginTop: space(8) }]}>Everything in Kova stays on this phone.</Text>
     </Screen>
   );
 }
@@ -204,7 +204,7 @@ export default function SettingsScreen({ navigation }: Props) {
 function Pill({ on, label, onPress }: { on: boolean; label: string; onPress: () => void }) {
   return (
     <Pressable onPress={onPress} style={{ paddingHorizontal: 14, paddingVertical: 9, borderRadius: 99, borderWidth: 1, borderColor: on ? colors.accent : colors.line, backgroundColor: on ? colors.accent : colors.surface }}>
-      <Text style={{ color: on ? colors.accentInk : colors.ink, fontSize: 13, fontWeight: '600' }}>{label}</Text>
+      <Text style={{ color: on ? colors.accentInk : colors.ink, fontSize: 13, fontFamily: fonts.semibold }}>{label}</Text>
     </Pressable>
   );
 }

@@ -9,7 +9,7 @@ import { Button } from '../components/ui';
 import { useStore } from '../data/store';
 import type { PaymentKind } from '../data/types';
 import { rescheduleReminders } from '../services/reminders';
-import { colors, space, type } from '../theme';
+import { colors, fonts, space, type } from '../theme';
 
 import AccountsScreen from '../screens/AccountsScreen';
 import ActivityScreen from '../screens/ActivityScreen';
@@ -79,7 +79,7 @@ function Tabs() {
         tabBarActiveTintColor: colors.ink,
         tabBarInactiveTintColor: colors.faint,
         tabBarStyle: { backgroundColor: colors.bg, borderTopColor: colors.line },
-        tabBarLabelStyle: { fontSize: 11, fontWeight: '600' },
+        tabBarLabelStyle: { fontSize: 12, fontFamily: fonts.medium },
         tabBarIcon: ({ focused, color, size }) => (
           <Ionicons name={TAB_ICONS[route.name][focused ? 0 : 1]} size={size - 2} color={color} />
         ),
@@ -148,6 +148,7 @@ export default function RootNavigator() {
       <Stack.Navigator
         screenOptions={{
           headerStyle: { backgroundColor: colors.bg },
+          headerTitleStyle: { fontFamily: fonts.semibold, fontSize: 18 },
           headerTintColor: colors.ink,
           headerShadowVisible: false,
           headerBackButtonDisplayMode: 'minimal',

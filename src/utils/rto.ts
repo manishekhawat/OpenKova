@@ -36,5 +36,5 @@ export function describeReg(regNo: string): string | undefined {
   const r = decodeReg(regNo);
   if (!r) return undefined;
   if (r.bharat) return r.state;
-  return `${r.state} · RTO ${r.code}${r.rto ? ` (${r.rto})` : ''}`;
+  return `Registered in ${r.state}, RTO ${r.code}${r.rto ? ` (${r.rto})` : ''}`;
 }

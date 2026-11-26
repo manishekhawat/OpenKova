@@ -9,6 +9,11 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Crypto from 'expo-crypto';
 import { File, Paths } from 'expo-file-system';
 import * as SecureStore from 'expo-secure-store';
+import { Platform } from 'react-native';
+
+// Web is only used for design previews: plain localStorage, no encryption.
+const WEB = Platform.OS === 'web';
+const WEB_KEY = 'kova.preview.state';
 
 const KEY_NAME = 'kova.vault.key.v1';
 const FILE_NAME = 'kova.vault';
@@ -54,6 +59,10 @@ export function decrypt(key: Uint8Array, data: Uint8Array): string {
 
 /** Loads saved state. Returns null on first run. Migrates the old plain-text demo storage once. */
 export async function loadState<T>(): Promise<T | null> {
+  if (WEB) {
+    const raw = globalThis.localStorage?.getItem(WEB_KEY);
+    return raw ? (JSON.parse(raw) as T) : null;
+  }
   const file = vaultFile();
   if (file.exists) {
     const key = await getKey();
@@ -73,6 +82,10 @@ let writing: Promise<void> = Promise.resolve();
 
 /** Serialised writes so two saves never interleave. */
 export function saveState(state: unknown): Promise<void> {
+  if (WEB) {
+    globalThis.localStorage?.setItem(WEB_KEY, JSON.stringify(state));
+    return Promise.resolve();
+  }
   writing = writing
     .catch(() => {})
     .then(async () => {
@@ -90,6 +103,10 @@ export function saveState(state: unknown): Promise<void> {
 
 /** Deletes the data file and the key. Used by "Erase all data". */
 export async function wipeVault(): Promise<void> {
+  if (WEB) {
+    globalThis.localStorage?.removeItem(WEB_KEY);
+    return;
+  }
   await writing.catch(() => {});
   const file = vaultFile();
   if (file.exists) file.delete();

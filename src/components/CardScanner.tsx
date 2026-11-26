@@ -5,8 +5,8 @@ import { ActivityIndicator, Linking, Modal, Pressable, Text, View } from 'react-
 import { cancelNfc, cardScanAvailable, nfcState, readCardNfc, recognizeCard } from '../../modules/kova-card';
 import { guessFromOcr, networkFromAid, networkFromIin, type CardGuess } from '../cards/cardDetails';
 import { detectBank } from '../sms/parse';
-import { colors, radius, space, type } from '../theme';
-import { Button } from './ui';
+import { colors, fonts, radius, space, type } from '../theme';
+import { Button, ListRow } from './ui';
 
 /** Two buttons: read a card from a photo, or by tapping it on the phone (NFC). */
 export function CardScanner({ onResult }: { onResult: (g: CardGuess, source: 'photo' | 'nfc') => void }) {
@@ -73,18 +73,16 @@ export function CardScanner({ onResult }: { onResult: (g: CardGuess, source: 'ph
 
   return (
     <View style={{ marginBottom: space(5) }}>
-      <View style={{ flexDirection: 'row', gap: 10 }}>
-        <Tile icon="camera-outline" label="Scan photo" onPress={() => fromPhoto(true)} disabled={!!busy} />
-        <Tile icon="images-outline" label="From gallery" onPress={() => fromPhoto(false)} disabled={!!busy} />
-        {nfc !== 'unsupported' && <Tile icon="radio-outline" label="Tap card" onPress={fromNfc} disabled={!!busy} />}
-      </View>
+      <ListRow icon="camera-outline" iconColor={colors.accent} title="Take a photo of the card" subtitle="Reads the bank, network, name and last 4 digits" onPress={busy ? undefined : () => fromPhoto(true)} />
+      <ListRow icon="images-outline" iconColor={colors.accent} title="Choose a photo" onPress={busy ? undefined : () => fromPhoto(false)} last={nfc === 'unsupported'} />
+      {nfc !== 'unsupported' && <ListRow icon="radio-outline" iconColor={colors.accent} title="Tap the card on your phone" subtitle="Works with most contactless cards" onPress={busy ? undefined : fromNfc} last />}
       {busy === 'photo' && (
         <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: space(3) }}>
           <ActivityIndicator color={colors.accent} />
           <Text style={[type.small, { marginLeft: 8 }]}>Reading the card…</Text>
         </View>
       )}
-      {error ? <Text style={{ color: colors.warn, marginTop: space(3), lineHeight: 20 }}>{error}</Text> : null}
+      {error ? <Text style={{ fontFamily: fonts.regular, fontSize: 15, lineHeight: 20, color: colors.warn, marginTop: space(3) }}>{error}</Text> : null}
       {error.startsWith('NFC is off') && <Button label="Open NFC settings" variant="ghost" onPress={() => Linking.sendIntent('android.settings.NFC_SETTINGS').catch(() => Linking.openSettings())} style={{ marginTop: space(3) }} />}
       <Text style={[type.tiny, { marginTop: space(3) }]}>
         Read on this phone only. Kova keeps the last 4 digits, bank and network; the full number, CVV and expiry are never saved.
@@ -104,21 +102,5 @@ export function CardScanner({ onResult }: { onResult: (g: CardGuess, source: 'ph
         </View>
       </Modal>
     </View>
-  );
-}
-
-function Tile({ icon, label, onPress, disabled }: { icon: React.ComponentProps<typeof Ionicons>['name']; label: string; onPress: () => void; disabled?: boolean }) {
-  return (
-    <Pressable
-      onPress={onPress}
-      disabled={disabled}
-      style={({ pressed }) => [
-        { flex: 1, alignItems: 'center', paddingVertical: space(4), borderRadius: radius.md, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.line },
-        (pressed || disabled) && { opacity: 0.6 },
-      ]}
-    >
-      <Ionicons name={icon} size={24} color={colors.accent} />
-      <Text style={[type.small, { marginTop: 6, color: colors.ink }]}>{label}</Text>
-    </Pressable>
   );
 }

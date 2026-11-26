@@ -5,7 +5,7 @@ import { Logo } from '../components/Logo';
 import { Button, Field, IconBadge, IconName, Screen, Surface, ToggleRow } from '../components/ui';
 import { useStore } from '../data/store';
 import { ensureReminderPermission } from '../services/reminders';
-import { colors, radius, space, type } from '../theme';
+import { colors, fonts, radius, space, type } from '../theme';
 
 type Step = 'name' | 'start';
 
@@ -60,12 +60,12 @@ export default function OnboardingScreen() {
       <Screen>
         <View style={{ marginTop: space(8) }}>
           <Logo size={34} />
-          <Text style={[type.hero, { marginTop: space(6) }]}>
-            {step === 'name' ? 'Every card, bill and\nvehicle. One place.' : `Hi ${name.trim().split(' ')[0]}.\nHow do you want to start?`}
+          <Text style={[type.title, { fontFamily: fonts.medium, fontSize: 32, lineHeight: 38, marginTop: space(8) }]}>
+            {step === 'name' ? 'Keep track of your cards, bills and vehicles.' : `How do you want to start, ${name.trim().split(' ')[0]}?`}
           </Text>
           <Text style={[type.small, { marginTop: space(3), fontSize: 15, lineHeight: 22 }]}>
             {step === 'name'
-              ? 'Your data stays encrypted on this phone. No account, no server.'
+              ? 'Kova keeps everything encrypted on this phone. There is no account and nothing is uploaded.'
               : 'You can change any of this later in Settings.'}
           </Text>
         </View>
@@ -79,8 +79,8 @@ export default function OnboardingScreen() {
           ) : (
             <>
               <View style={{ gap: space(3) }}>
-                {choice(!withSample, 'sparkles-outline', 'Start fresh', 'Add your own cards, bills and vehicles', () => setWithSample(false))}
-                {choice(withSample, 'flask-outline', 'Explore with sample data', 'Try the app first; erase it any time', () => setWithSample(true))}
+                {choice(!withSample, 'add-circle-outline', 'Start empty', 'Add your own cards, bills and vehicles', () => setWithSample(false))}
+                {choice(withSample, 'albums-outline', 'Start with sample data', 'See how Kova works, then erase it in Settings', () => setWithSample(true))}
               </View>
               <Surface style={{ marginTop: space(5), paddingVertical: space(1) }}>
                 <ToggleRow
@@ -92,9 +92,9 @@ export default function OnboardingScreen() {
                   last
                 />
               </Surface>
-              <Button label="Get started" onPress={finish} style={{ marginTop: space(6) }} />
+              <Button label="Open Kova" onPress={finish} style={{ marginTop: space(6) }} />
               <Pressable onPress={() => setStep('name')} style={{ alignSelf: 'center', padding: space(4) }}>
-                <Text style={{ color: colors.muted }}>Back</Text>
+                <Text style={{ fontFamily: fonts.regular, fontSize: 15, lineHeight: 20, color: colors.muted }}>Back</Text>
               </Pressable>
             </>
           )}

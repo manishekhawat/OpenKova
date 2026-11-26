@@ -1,11 +1,11 @@
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import React, { useMemo, useState } from 'react';
 import { Pressable, ScrollView, Text, View } from 'react-native';
-import { IconBadge, ProgressBar, Screen, SectionHeader, Surface } from '../components/ui';
+import { IconBadge, ListRow, ProgressBar, Screen, SectionHeader, Surface } from '../components/ui';
 import { useStore } from '../data/store';
 import type { SpendCategory, Transaction } from '../data/types';
 import type { RootStackParamList } from '../navigation';
-import { colors, radius, space, type } from '../theme';
+import { colors, fonts, radius, space, type } from '../theme';
 import { inr, monthKey, monthLabel } from '../utils/format';
 import { CATEGORY_ICON } from './CardDetailScreen';
 
@@ -64,7 +64,7 @@ export default function InsightsScreen({ route }: Props) {
           const on = f.id === cardId;
           return (
             <Pressable key={f.label} onPress={() => setCardId(f.id)} style={{ paddingHorizontal: 14, paddingVertical: 9, borderRadius: 99, borderWidth: 1, borderColor: on ? colors.accent : colors.line, backgroundColor: on ? colors.accent : colors.surface }}>
-              <Text style={{ color: on ? colors.accentInk : colors.ink, fontWeight: '600', fontSize: 13 }}>{f.label}</Text>
+              <Text style={{ color: on ? colors.accentInk : colors.ink, fontFamily: fonts.semibold, fontSize: 13 }}>{f.label}</Text>
             </Pressable>
           );
         })}
@@ -73,7 +73,7 @@ export default function InsightsScreen({ route }: Props) {
       <Text style={[type.small, { marginTop: space(6) }]}>Spent in {month?.label}</Text>
       <Text style={[type.hero, { marginTop: 2 }]}>{inr(month?.total ?? 0)}</Text>
       {change !== null && (
-        <Text style={{ color: change > 0 ? colors.warn : colors.good, marginTop: 4, fontWeight: '600' }}>
+        <Text style={{ color: change > 0 ? colors.warn : colors.good, marginTop: 4, fontFamily: fonts.semibold }}>
           {change > 0 ? '▲' : '▼'} {Math.abs(Math.round(change * 100))}% vs {months[selected - 1].label}
         </Text>
       )}
@@ -102,11 +102,11 @@ export default function InsightsScreen({ route }: Props) {
               <View style={{ flex: 1, marginLeft: 12 }}>
                 <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 6 }}>
                   <Text style={type.body}>{c.category}</Text>
-                  <Text style={[type.body, { fontWeight: '600' }]}>{inr(c.total)}</Text>
+                  <Text style={[type.body, { fontFamily: fonts.semibold }]}>{inr(c.total)}</Text>
                 </View>
                 <ProgressBar value={c.total / catMax} />
                 <Text style={[type.tiny, { marginTop: 4 }]}>
-                  {c.count} txn{c.count === 1 ? '' : 's'} · {Math.round((c.total / Math.max(1, month.total)) * 100)}% of month
+                  {Math.round((c.total / Math.max(1, month.total)) * 100)}% of the month, {c.count} payment{c.count === 1 ? '' : 's'}
                 </Text>
               </View>
             </View>
@@ -115,14 +115,11 @@ export default function InsightsScreen({ route }: Props) {
       </Surface>
 
       <SectionHeader title="Top merchants" />
-      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10 }}>
-        {topMerchants.map(([name, total]) => (
-          <View key={name} style={{ width: '48%', flexGrow: 1, backgroundColor: colors.surface, borderRadius: radius.md, borderWidth: 1, borderColor: colors.line, padding: space(4) }}>
-            <Text style={type.small} numberOfLines={1}>{name}</Text>
-            <Text style={[type.h3, { marginTop: 4 }]}>{inr(total)}</Text>
-          </View>
+      <Surface>
+        {topMerchants.map(([name, total], i) => (
+          <ListRow key={name} icon="storefront-outline" title={name} right={inr(total)} last={i === topMerchants.length - 1} />
         ))}
-      </View>
+      </Surface>
     </Screen>
   );
 }

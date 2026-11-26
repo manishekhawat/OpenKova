@@ -5,7 +5,7 @@ import { Button, Chips, Field, Screen, ToggleRow } from '../components/ui';
 import { useStore } from '../data/store';
 import type { BankAccount } from '../data/types';
 import type { RootStackParamList } from '../navigation';
-import { colors, space, type } from '../theme';
+import { colors, fonts, space, type } from '../theme';
 import { uid } from '../utils/format';
 
 const TYPES = ['Savings', 'Current', 'Salary'] as const;
@@ -70,7 +70,7 @@ export default function AddAccountScreen({ navigation, route }: Props) {
             }}
             style={{ alignSelf: 'center', padding: space(4), marginTop: space(3) }}
           >
-            <Text style={{ color: colors.bad, fontWeight: '600' }}>{confirmDelete ? 'Tap again to remove' : 'Remove account'}</Text>
+            <Text style={{ color: colors.bad, fontFamily: fonts.semibold }}>{confirmDelete ? 'Tap again to remove' : 'Remove account'}</Text>
           </Pressable>
         )}
       </Screen>

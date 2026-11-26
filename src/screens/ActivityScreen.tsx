@@ -35,7 +35,7 @@ export default function ActivityScreen() {
               icon={ICON[p.kind]}
               iconColor={colors.good}
               title={p.title}
-              subtitle={`${shortDate(p.date)}${a ? ` · from ${a.bank} •• ${a.last4}` : ''}`}
+              subtitle={`${shortDate(p.date)}${a ? `, from ${a.bank} ending ${a.last4}` : ''}`}
               right={`-${inr(p.amount)}`}
               last={i === state.payments.length - 1}
             />

@@ -6,7 +6,7 @@ import { useStore } from '../data/store';
 import type { BillCategory } from '../data/types';
 import type { RootStackParamList } from '../navigation';
 import { normaliseUrl } from '../services/openPay';
-import { colors, space, type } from '../theme';
+import { colors, fonts, space, type } from '../theme';
 import { addDays, uid } from '../utils/format';
 
 const CATS: readonly BillCategory[] = ['Electricity', 'Broadband', 'Mobile postpaid', 'Rent', 'Gas', 'Water', 'Insurance', 'DTH'];
@@ -81,7 +81,7 @@ export default function AddBillScreen({ navigation, route }: Props) {
             }}
             style={{ alignSelf: 'center', padding: space(4), marginTop: space(3) }}
           >
-            <Text style={{ color: colors.bad, fontWeight: '600' }}>{confirmDelete ? 'Tap again to delete this bill' : 'Delete bill'}</Text>
+            <Text style={{ color: colors.bad, fontFamily: fonts.semibold }}>{confirmDelete ? 'Tap again to delete this bill' : 'Delete bill'}</Text>
           </Pressable>
         )}
       </Screen>

@@ -5,7 +5,7 @@ import * as LocalAuthentication from 'expo-local-authentication';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { AppState as RNAppState, StyleSheet, Text, View } from 'react-native';
 import { useStore } from '../data/store';
-import { colors, space, type } from '../theme';
+import { colors, fonts, space, type } from '../theme';
 import { Logo } from './Logo';
 import { Button } from './ui';
 
@@ -86,7 +86,7 @@ export function LockGate({ children }: { children: React.ReactNode }) {
               <Ionicons name="lock-closed" size={36} color={colors.ink} style={{ marginTop: space(10) }} />
               <Text style={[type.title, { marginTop: space(4) }]}>Kova is locked</Text>
               <Text style={[type.small, { marginTop: space(2), textAlign: 'center' }]}>Use your fingerprint, face or phone PIN.</Text>
-              {error ? <Text style={{ color: colors.bad, marginTop: space(3) }}>{error}</Text> : null}
+              {error ? <Text style={{ fontFamily: fonts.regular, fontSize: 15, lineHeight: 20, color: colors.bad, marginTop: space(3) }}>{error}</Text> : null}
               <Button label="Unlock" icon="finger-print" onPress={unlock} style={{ marginTop: space(8), alignSelf: 'stretch' }} />
             </>
           )}

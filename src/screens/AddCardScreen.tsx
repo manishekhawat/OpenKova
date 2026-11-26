@@ -11,15 +11,9 @@ import type { RootStackParamList } from '../navigation';
 import { normaliseUrl } from '../services/openPay';
 import { colors, space, type } from '../theme';
 import { addDays, uid } from '../utils/format';
+import { CARD_PALETTES as PALETTES } from '../cards/palettes';
 
 const NETWORKS: readonly Network[] = ['Visa', 'Mastercard', 'RuPay', 'Amex', 'Diners', 'Other'];
-const PALETTES: [string, string][] = [
-  ['#2B2B33', '#0E0E12'],
-  ['#3A1E4A', '#14091C'],
-  ['#0F3B3A', '#06171A'],
-  ['#4A2A12', '#1A0E06'],
-  ['#1B2C55', '#0A1022'],
-];
 
 type Props = NativeStackScreenProps<RootStackParamList, 'AddCard'>;
 

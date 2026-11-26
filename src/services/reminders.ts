@@ -39,12 +39,12 @@ function collectDues(state: AppState): Due[] {
     if (c.outstanding > 0)
       out.push({ id: `card-${c.id}`, title: `${c.bank} card bill`, body: `${inr(c.outstanding)} due (min ${inr(c.minDue)})`, due: new Date(c.dueDate) });
   for (const b of state.bills)
-    if (!b.paidOn) out.push({ id: `bill-${b.id}`, title: `${b.biller} bill`, body: `${inr(b.amount)} · ${b.category}`, due: new Date(b.dueDate) });
+    if (!b.paidOn) out.push({ id: `bill-${b.id}`, title: `${b.biller} bill`, body: `${inr(b.amount)} ${b.category.toLowerCase()} bill`, due: new Date(b.dueDate) });
   for (const v of state.vehicles) {
     const name = vehicleName(v);
-    if (v.insuranceExpiry) out.push({ id: `ins-${v.id}`, title: `${name} insurance`, body: `${v.regNo} · policy expires`, due: new Date(v.insuranceExpiry) });
-    if (v.pucExpiry) out.push({ id: `puc-${v.id}`, title: `${name} PUC`, body: `${v.regNo} · pollution certificate expires`, due: new Date(v.pucExpiry) });
-    if (v.serviceDue) out.push({ id: `svc-${v.id}`, title: `${name} service`, body: `${v.regNo} · service due`, due: new Date(v.serviceDue) });
+    if (v.insuranceExpiry) out.push({ id: `ins-${v.id}`, title: `${name} insurance`, body: `Policy for ${v.regNo} expires`, due: new Date(v.insuranceExpiry) });
+    if (v.pucExpiry) out.push({ id: `puc-${v.id}`, title: `${name} PUC`, body: `Pollution certificate for ${v.regNo} expires`, due: new Date(v.pucExpiry) });
+    if (v.serviceDue) out.push({ id: `svc-${v.id}`, title: `${name} service`, body: `Service due for ${v.regNo}`, due: new Date(v.serviceDue) });
   }
   return out;
 }

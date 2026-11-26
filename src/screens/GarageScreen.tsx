@@ -5,7 +5,7 @@ import { Pressable, Text, View } from 'react-native';
 import { Button, Empty, Pill, Screen } from '../components/ui';
 import { useStore, vehicleName } from '../data/store';
 import type { Vehicle } from '../data/types';
-import { colors, radius, space, type } from '../theme';
+import { colors, fonts, radius, space, type } from '../theme';
 import { daysFromToday, expiryLabel, inr } from '../utils/format';
 
 export function statusColor(iso?: string) {
@@ -18,10 +18,10 @@ export function NumberPlate({ regNo, big }: { regNo: string; big?: boolean }) {
   return (
     <View style={{ flexDirection: 'row', alignSelf: 'flex-start', borderRadius: 6, overflow: 'hidden', borderWidth: 1.5, borderColor: '#111' }}>
       <View style={{ backgroundColor: '#1F4BB8', paddingHorizontal: 4, justifyContent: 'center' }}>
-        <Text style={{ color: '#fff', fontSize: big ? 10 : 8, fontWeight: '800' }}>IND</Text>
+        <Text style={{ color: '#fff', fontSize: big ? 10 : 8, fontFamily: fonts.semibold }}>IND</Text>
       </View>
       <View style={{ backgroundColor: '#F7F7F2', paddingHorizontal: big ? 14 : 10, paddingVertical: big ? 6 : 4 }}>
-        <Text style={{ color: '#111', fontSize: big ? 20 : 15, fontWeight: '800', letterSpacing: 1.5 }}>{regNo}</Text>
+        <Text style={{ color: '#111', fontSize: big ? 20 : 15, fontFamily: fonts.semibold, letterSpacing: 1.5 }}>{regNo}</Text>
       </View>
     </View>
   );
@@ -31,11 +31,11 @@ function VehicleCard({ v, onPress }: { v: Vehicle; onPress: () => void }) {
   const openChallans = v.challans.filter((c) => !c.paidOn);
   const fine = openChallans.reduce((n, c) => n + c.amount, 0);
   return (
-    <Pressable onPress={onPress} style={({ pressed }) => [{ backgroundColor: colors.surface, borderRadius: radius.xl, borderWidth: 1, borderColor: colors.line, padding: space(5) }, pressed && { opacity: 0.85 }]}>
+    <Pressable onPress={onPress} style={({ pressed }) => [{ backgroundColor: colors.surface, borderRadius: radius.lg, padding: space(5) }, pressed && { opacity: 0.85 }]}>
       <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' }}>
         <View style={{ flex: 1 }}>
           <Text style={type.h3}>{vehicleName(v)}</Text>
-          <Text style={[type.small, { marginTop: 2, marginBottom: space(3) }]}>{v.year} · {v.fuel}</Text>
+          <Text style={[type.small, { marginTop: 2, marginBottom: space(3) }]}>{v.fuel}, {v.year}</Text>
           <NumberPlate regNo={v.regNo} />
         </View>
         <Ionicons name={v.kind === 'Car' ? 'car-sport' : 'bicycle'} size={44} color={colors.faint} />
@@ -44,12 +44,12 @@ function VehicleCard({ v, onPress }: { v: Vehicle; onPress: () => void }) {
       <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: space(5) }}>
         <Pill label={v.insuranceExpiry ? `Insurance ${expiryLabel(v.insuranceExpiry)}` : 'Insurance date not set'} color={statusColor(v.insuranceExpiry)} />
         <Pill label={v.pucExpiry ? `PUC ${expiryLabel(v.pucExpiry)}` : 'PUC date not set'} color={statusColor(v.pucExpiry)} />
-        {openChallans.length > 0 && <Pill label={`${openChallans.length} challan · ${inr(fine)}`} color={colors.bad} />}
+        {openChallans.length > 0 && <Pill label={`${inr(fine)} in challans`} color={colors.bad} />}
       </View>
 
       <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: space(4), paddingTop: space(4), borderTopWidth: 1, borderTopColor: colors.line }}>
         <Text style={type.small}>FASTag balance</Text>
-        <Text style={[type.body, { fontWeight: '600', color: v.fastagBalance < 300 ? colors.warn : colors.ink }]}>{inr(v.fastagBalance)}</Text>
+        <Text style={[type.body, { fontFamily: fonts.semibold, color: v.fastagBalance < 300 ? colors.warn : colors.ink }]}>{inr(v.fastagBalance)}</Text>
       </View>
     </Pressable>
   );
@@ -68,7 +68,7 @@ export default function GarageScreen() {
       <Text style={type.title}>Garage</Text>
       <Text style={[type.small, { marginTop: 4, marginBottom: space(6) }]}>
         {state.vehicles.length} vehicle{state.vehicles.length === 1 ? '' : 's'}
-        {alerts ? ` · ${alerts} thing${alerts === 1 ? '' : 's'} need attention` : ' · all good'}
+        {alerts ? `, ${alerts} need${alerts === 1 ? 's' : ''} attention` : ''}
       </Text>
       {state.vehicles.length === 0 && <Empty icon="car-outline" text="Add your car or bike to track insurance, PUC, challans and FASTag." />}
       <View style={{ gap: space(4) }}>

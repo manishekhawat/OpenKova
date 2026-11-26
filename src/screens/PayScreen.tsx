@@ -8,7 +8,7 @@ import { bankLinks } from '../data/banks';
 import { useStore } from '../data/store';
 import type { RootStackParamList } from '../navigation';
 import { openPaymentTarget } from '../services/openPay';
-import { colors, radius, space, type } from '../theme';
+import { colors, fonts, radius, space, type } from '../theme';
 import { dueLabel, inr } from '../utils/format';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Pay'>;
@@ -30,7 +30,7 @@ export default function PayScreen({ route, navigation }: Props) {
       const preset = bankLinks(c.bank);
       return {
         title: `${c.bank} ${c.name}`,
-        subtitle: `Card •• ${c.last4}${c.outstanding ? ` · ${dueLabel(c.dueDate)}` : ''}`,
+        subtitle: `Card ending ${c.last4}${c.outstanding ? `, ${dueLabel(c.dueDate)}` : ''}`,
         presets,
         custom: true,
         bank: c.bank,
@@ -42,7 +42,7 @@ export default function PayScreen({ route, navigation }: Props) {
       if (!b) return null;
       return {
         title: b.biller,
-        subtitle: `${b.category} · ${b.consumerId} · ${dueLabel(b.dueDate)}`,
+        subtitle: `${b.category} bill for ${b.consumerId}, ${dueLabel(b.dueDate)}`,
         presets: [{ label: 'Bill amount', amount: b.amount }],
         custom: true,
         bank: '',
@@ -55,8 +55,8 @@ export default function PayScreen({ route, navigation }: Props) {
       const ch = v.challans.find((x) => x.id === subId);
       if (!ch) return null;
       return {
-        title: `Challan · ${ch.offence}`,
-        subtitle: `${v.regNo} · ${ch.location}`,
+        title: `Challan for ${ch.offence.toLowerCase()}`,
+        subtitle: ch.location && ch.location !== '—' ? `${v.regNo}, ${ch.location}` : v.regNo,
         presets: [{ label: 'Fine', amount: ch.amount }],
         custom: false,
         bank: '',
@@ -65,7 +65,7 @@ export default function PayScreen({ route, navigation }: Props) {
     }
     return {
       title: 'FASTag recharge',
-      subtitle: `${v.regNo} · balance ${inr(v.fastagBalance)}`,
+      subtitle: `${v.regNo} has ${inr(v.fastagBalance)} left`,
       presets: [500, 1000, 2000].map((a) => ({ label: inr(a), amount: a })),
       custom: true,
       bank: '',
@@ -158,7 +158,7 @@ export default function PayScreen({ route, navigation }: Props) {
                 keyboardType="decimal-pad"
                 placeholder="0"
                 placeholderTextColor={colors.faint}
-                style={{ color: colors.ink, fontSize: 17, fontWeight: '600', minWidth: 90, textAlign: 'right', paddingVertical: 10 }}
+                style={{ color: colors.ink, fontSize: 17, fontFamily: fonts.semibold, minWidth: 90, textAlign: 'right', paddingVertical: 10 }}
               />
             </Pressable>
           )}
@@ -181,7 +181,7 @@ export default function PayScreen({ route, navigation }: Props) {
             ))}
           </Surface>
         )}
-        {opened ? <Text style={{ color: colors.warn, marginTop: 8 }}>{opened}</Text> : null}
+        {opened ? <Text style={{ fontFamily: fonts.regular, fontSize: 15, lineHeight: 20, color: colors.warn, marginTop: 8 }}>{opened}</Text> : null}
 
         <SectionHeader title="2. Record it in Kova" />
         <Text style={[type.small, { marginBottom: space(3) }]}>Paid from (updates that account's balance)</Text>
@@ -224,7 +224,7 @@ function Option({ selected, onPress, title, right }: { selected: boolean; onPres
     <Pressable onPress={onPress} style={optStyle(selected)}>
       <Radio on={selected} />
       <Text style={[type.body, { flex: 1, marginLeft: 12 }]}>{title}</Text>
-      {right ? <Text style={[type.body, { fontWeight: '600', color: colors.muted }]}>{right}</Text> : null}
+      {right ? <Text style={[type.body, { fontFamily: fonts.semibold, color: colors.muted }]}>{right}</Text> : null}
     </Pressable>
   );
 }

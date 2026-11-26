@@ -18,13 +18,13 @@ export default function AccountsScreen() {
     <Screen>
       <Text style={type.title}>Money</Text>
       <Text style={[type.small, { marginTop: 4 }]}>Balance across {state.accounts.length} account{state.accounts.length === 1 ? '' : 's'}</Text>
-      <Text style={[type.hero, { marginTop: space(2), fontVariant: ['tabular-nums'] }]}>{inr(totalBalance(state), { decimals: true })}</Text>
+      <Text style={[type.hero, { marginTop: space(2), fontVariant: ['tabular-nums'] }]}>{inr(Math.round(totalBalance(state)))}</Text>
 
       <SectionHeader title="Bank accounts" action="Add" onAction={() => nav.navigate('AddAccount')} />
       <Surface style={{ paddingVertical: space(1) }}>
         {state.accounts.length === 0 && <Text style={[type.small, { paddingVertical: space(4) }]}>Add your bank accounts to track balances and pay from your bank's app.</Text>}
         {state.accounts.map((a, i) => (
-          <ListRow key={a.id} icon="business-outline" title={a.bank} subtitle={`${a.type} •• ${a.last4} · ${a.ifsc}${a.primary ? ' · primary' : ''}`} right={inr(a.balance, { decimals: true })} onPress={() => nav.navigate('AddAccount', { id: a.id })} last={i === state.accounts.length - 1} />
+          <ListRow key={a.id} icon="business-outline" title={a.bank} subtitle={`${a.type} account ending ${a.last4}`} right={inr(a.balance, { decimals: true })} onPress={() => nav.navigate('AddAccount', { id: a.id })} last={i === state.accounts.length - 1} />
         ))}
       </Surface>
 
@@ -40,7 +40,7 @@ export default function AccountsScreen() {
             ))}
           </View>
           <Text style={[type.small, { marginTop: space(3) }]}>
-            {inr(months[months.length - 1]?.total ?? 0)} this month · {inr(Math.round(months.slice(0, -1).reduce((n, m) => n + m.total, 0) / Math.max(1, months.length - 1)))} average before
+            {inr(months[months.length - 1]?.total ?? 0)} so far this month. You usually spend {inr(Math.round(months.slice(0, -1).reduce((n, m) => n + m.total, 0) / Math.max(1, months.length - 1)))}.
           </Text>
         </Surface>
       </Pressable>

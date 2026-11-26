@@ -45,7 +45,7 @@ export default function BillsScreen() {
                 icon={BILL_ICON[b.category]}
                 iconColor={urgencyColor(d, colors)}
                 title={b.biller}
-                subtitle={`${b.category} · ${b.consumerId}`}
+                subtitle={b.consumerId && b.consumerId !== '—' ? `${b.category}, ${b.consumerId}` : b.category}
                 right={inr(b.amount)}
                 rightSub={dueLabel(b.dueDate)}
                 rightSubColor={urgencyColor(d, colors)}
@@ -68,7 +68,7 @@ export default function BillsScreen() {
 
       {tab === 'Upcoming' ? (
         unpaid.length === 0 ? (
-          <Empty icon="checkmark-done-outline" text="All bills paid. Nice." />
+          <Empty icon="checkmark-done-outline" text="No unpaid bills." />
         ) : (
           <>
             {group('Overdue', overdue)}

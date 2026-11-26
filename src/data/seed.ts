@@ -74,7 +74,7 @@ export function seedState(): AppState {
       minDue: 2413,
       dueDate: addDays(3),
       statementDate: addDays(-17),
-      palette: ['#2B2B33', '#0E0E12'],
+      palette: ['#3B2F63', '#211A3D'],
     },
     {
       id: 'c_axis',
@@ -88,7 +88,7 @@ export function seedState(): AppState {
       minDue: 892,
       dueDate: addDays(9),
       statementDate: addDays(-11),
-      palette: ['#3A1E4A', '#14091C'],
+      palette: ['#5A2533', '#36141E'],
     },
     {
       id: 'c_sbi',
@@ -102,7 +102,7 @@ export function seedState(): AppState {
       minDue: 0,
       dueDate: addDays(21),
       statementDate: addDays(1),
-      palette: ['#0F3B3A', '#06171A'],
+      palette: ['#1F4A44', '#10302B'],
     },
   ];
 
@@ -118,7 +118,7 @@ export function seedState(): AppState {
       { id: 'b_elec', category: 'Electricity', biller: 'BESCOM', consumerId: '7710 2245 91', amount: 2140, dueDate: addDays(2) },
       { id: 'b_net', category: 'Broadband', biller: 'ACT Fibernet', consumerId: '1023998', amount: 1178, dueDate: addDays(5) },
       { id: 'b_mob', category: 'Mobile postpaid', biller: 'Airtel Postpaid', consumerId: '98450 12345', amount: 699, dueDate: addDays(11) },
-      { id: 'b_rent', category: 'Rent', biller: 'Landlord · Mr. Rao', consumerId: 'Flat 402', amount: 32000, dueDate: addDays(14) },
+      { id: 'b_rent', category: 'Rent', biller: 'Rent to Mr. Rao', consumerId: 'Flat 402', amount: 32000, dueDate: addDays(14) },
       { id: 'b_gas', category: 'Gas', biller: 'Indane LPG', consumerId: 'IND-55021', amount: 903, dueDate: addDays(-1) },
       { id: 'b_ins', category: 'Insurance', biller: 'HDFC Life', consumerId: 'POL 88213', amount: 18500, dueDate: addDays(26) },
     ],

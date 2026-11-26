@@ -12,7 +12,7 @@
     },
     "android": {
       "adaptiveIcon": {
-        "backgroundColor": "#0A0A0C",
+        "backgroundColor": "#1B1830",
         "foregroundImage": "./assets/android-icon-foreground.png",
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
@@ -34,7 +34,7 @@
       "favicon": "./assets/favicon.png"
     },
     "scheme": "kova",
-    "backgroundColor": "#0A0A0C",
+    "backgroundColor": "#1B1830",
     "plugins": [
       "./plugins/withBankAppQueries",
       [
@@ -47,7 +47,7 @@
       [
         "expo-notifications",
         {
-          "color": "#9FB4FF"
+          "color": "#B8A8F2"
         }
       ],
       [
@@ -64,7 +64,7 @@
           "image": "./assets/splash-icon.png",
           "imageWidth": 160,
           "resizeMode": "contain",
-          "backgroundColor": "#0A0A0C"
+          "backgroundColor": "#1B1830"
         }
       ]
     ]

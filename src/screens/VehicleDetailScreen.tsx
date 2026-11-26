@@ -4,7 +4,7 @@ import { Pressable, Text, View } from 'react-native';
 import { Button, DateField, Field, ListRow, Screen, SectionHeader, Surface } from '../components/ui';
 import { useStore, vehicleName } from '../data/store';
 import type { RootStackParamList } from '../navigation';
-import { colors, space, type } from '../theme';
+import { colors, fonts, space, type } from '../theme';
 import { expiryLabel, inr, shortDate, uid } from '../utils/format';
 import { NumberPlate, statusColor } from './GarageScreen';
 
@@ -27,14 +27,14 @@ export default function VehicleDetailScreen({ route, navigation }: Props) {
   return (
     <Screen padTop={false}>
       <Text style={type.title}>{vehicleName(v)}</Text>
-      <Text style={[type.small, { marginTop: 2, marginBottom: space(4) }]}>{v.kind} · {v.year} · {v.fuel}</Text>
+      <Text style={[type.small, { marginTop: 2, marginBottom: space(4) }]}>{v.fuel} {v.kind.toLowerCase()}, {v.year}</Text>
       <NumberPlate regNo={v.regNo} big />
       <Button label="Edit vehicle & dates" variant="ghost" icon="create-outline" onPress={() => navigation.navigate('AddVehicle', { id: v.id })} style={{ marginTop: space(4) }} />
 
       <Surface style={{ marginTop: space(6) }}>
         <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
           <View>
-            <Text style={type.tiny}>FASTAG BALANCE</Text>
+            <Text style={type.small}>FASTag balance</Text>
             <Text style={[type.title, { marginTop: 4, color: v.fastagBalance < 300 ? colors.warn : colors.ink }]}>{inr(v.fastagBalance)}</Text>
           </View>
           <Button label="Recharge" onPress={() => navigation.navigate('Pay', { kind: 'fastag', refId: v.id })} style={{ height: 44 }} />
@@ -44,12 +44,12 @@ export default function VehicleDetailScreen({ route, navigation }: Props) {
 
       <SectionHeader title="Documents & reminders" />
       <Surface style={{ paddingVertical: space(1) }}>
-        <ListRow icon="shield-checkmark-outline" iconColor={statusColor(v.insuranceExpiry)} title="Insurance" subtitle={v.insuranceExpiry ? `${v.insurer} · till ${shortDate(v.insuranceExpiry)}` : 'Tap Edit to add the expiry date'} rightSub={v.insuranceExpiry ? expiryLabel(v.insuranceExpiry) : undefined} rightSubColor={statusColor(v.insuranceExpiry)} />
+        <ListRow icon="shield-checkmark-outline" iconColor={statusColor(v.insuranceExpiry)} title="Insurance" subtitle={v.insuranceExpiry ? `${v.insurer}, until ${shortDate(v.insuranceExpiry)}` : 'Tap Edit to add the expiry date'} rightSub={v.insuranceExpiry ? expiryLabel(v.insuranceExpiry) : undefined} rightSubColor={statusColor(v.insuranceExpiry)} />
         <ListRow icon="leaf-outline" iconColor={statusColor(v.pucExpiry)} title="Pollution (PUC)" subtitle={v.pucExpiry ? `Valid till ${shortDate(v.pucExpiry)}` : 'Not set'} rightSub={v.pucExpiry ? expiryLabel(v.pucExpiry) : undefined} rightSubColor={statusColor(v.pucExpiry)} />
         <ListRow icon="construct-outline" iconColor={statusColor(v.serviceDue)} title="Next service" subtitle={v.serviceDue ? shortDate(v.serviceDue) : 'Not set'} rightSub={v.serviceDue ? expiryLabel(v.serviceDue).replace('expires', 'due').replace('expired', 'overdue') : undefined} rightSubColor={statusColor(v.serviceDue)} last />
       </Surface>
 
-      <SectionHeader title={`Challans${open.length ? ` · ${open.length} unpaid` : ''}`} />
+      <SectionHeader title={open.length ? `Challans (${open.length} unpaid)` : 'Challans'} />
       <Surface style={{ paddingVertical: space(1) }}>
         {v.challans.length === 0 ? (
           <Text style={[type.small, { paddingVertical: space(4) }]}>No challans found for {v.regNo}.</Text>
@@ -60,7 +60,7 @@ export default function VehicleDetailScreen({ route, navigation }: Props) {
               icon={c.paidOn ? 'checkmark-circle-outline' : 'alert-circle-outline'}
               iconColor={c.paidOn ? colors.good : colors.bad}
               title={c.offence}
-              subtitle={`${c.location} · ${shortDate(c.date)}`}
+              subtitle={c.location && c.location !== '—' ? `${shortDate(c.date)}, ${c.location}` : shortDate(c.date)}
               right={inr(c.amount)}
               rightSub={c.paidOn ? 'Paid' : 'Tap to pay'}
               rightSubColor={c.paidOn ? colors.good : colors.accent}
@@ -104,7 +104,7 @@ export default function VehicleDetailScreen({ route, navigation }: Props) {
         }}
         style={{ alignSelf: 'center', marginTop: space(8), padding: space(3) }}
       >
-        <Text style={{ color: colors.bad, fontWeight: '600' }}>{confirmRemove ? 'Tap again to remove' : 'Remove vehicle'}</Text>
+        <Text style={{ color: colors.bad, fontFamily: fonts.semibold }}>{confirmRemove ? 'Tap again to remove' : 'Remove vehicle'}</Text>
       </Pressable>
     </Screen>
   );

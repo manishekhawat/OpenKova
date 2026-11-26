@@ -6,7 +6,7 @@ import { Button, Chips, IconName, ListRow, Screen, SectionHeader, Surface, Toggl
 import { useStore, vehicleName } from '../data/store';
 import type { RootStackParamList } from '../navigation';
 import { buildImport, isEmpty, type ImportPreview } from '../sms/importer';
-import { colors, space, type } from '../theme';
+import { colors, fonts, space, type } from '../theme';
 import { dueLabel, inr, shortDate } from '../utils/format';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'SmsImport'>;
@@ -99,13 +99,13 @@ export default function SmsImportScreen({ navigation, route }: Props) {
           </Surface>
           {phase === 'denied' && (
             <View style={{ marginBottom: space(4) }}>
-              <Text style={{ color: colors.warn, lineHeight: 20 }}>
+              <Text style={{ fontFamily: fonts.regular, fontSize: 15, lineHeight: 20, color: colors.warn }}>
                 SMS permission wasn't given. If Android says it's a restricted setting, open App info → ⋮ → Allow restricted settings, then try again.
               </Text>
               <Button label="Open app settings" variant="ghost" onPress={() => Linking.openSettings()} style={{ marginTop: space(3) }} />
             </View>
           )}
-          {phase === 'error' && <Text style={{ color: colors.bad, marginBottom: space(4) }}>Couldn't read SMS: {error}</Text>}
+          {phase === 'error' && <Text style={{ fontFamily: fonts.regular, fontSize: 15, lineHeight: 20, color: colors.bad, marginBottom: space(4) }}>Couldn't read SMS: {error}</Text>}
           <Button label="Scan messages" icon="mail-unread-outline" onPress={() => scan()} />
         </>
       )}
@@ -120,7 +120,7 @@ export default function SmsImportScreen({ navigation, route }: Props) {
       {phase === 'preview' && preview && c && (
         <>
           <Text style={[type.small, { marginTop: space(5) }]}>
-            Checked {preview.scanned} messages · {preview.recognised} from banks, billers or vehicles.
+            Checked {preview.scanned} messages. {preview.recognised} were from banks, billers or about your vehicles.
           </Text>
           {nothing && <Text style={[type.body, { marginTop: space(3) }]}>Nothing new found.</Text>}
 
@@ -134,7 +134,7 @@ export default function SmsImportScreen({ navigation, route }: Props) {
           )}
           {group(
             'New bills',
-            c.newBills.map((x) => ({ key: x.id, icon: 'receipt-outline', title: x.biller, sub: `${x.category} · ${dueLabel(x.dueDate)}`, right: inr(x.amount) })),
+            c.newBills.map((x) => ({ key: x.id, icon: 'receipt-outline', title: x.biller, sub: `${x.category}, ${dueLabel(x.dueDate)}`, right: inr(x.amount) })),
           )}
           {group(
             'New vehicles',
@@ -142,7 +142,7 @@ export default function SmsImportScreen({ navigation, route }: Props) {
               key: x.id,
               icon: 'car-sport-outline',
               title: x.regNo,
-              sub: [x.fastagBalance ? `FASTag ${inr(x.fastagBalance)}` : '', x.challans.length ? `${x.challans.length} challan` : '', x.insuranceExpiry ? `insurance till ${shortDate(x.insuranceExpiry)}` : ''].filter(Boolean).join(' · '),
+              sub: [x.fastagBalance ? `FASTag ${inr(x.fastagBalance)}` : '', x.challans.length ? `${x.challans.length} challan` : '', x.insuranceExpiry ? `insurance till ${shortDate(x.insuranceExpiry)}` : ''].filter(Boolean).join(', '),
             })),
           )}
           {group('Updates', [
@@ -156,7 +156,7 @@ export default function SmsImportScreen({ navigation, route }: Props) {
             </Text>
           )}
           {c.newCards.length + c.newVehicles.length > 0 && (
-            <Text style={[type.tiny, { marginTop: space(3) }]}>Tip: open new cards and vehicles afterwards to add names, limits and dates SMS doesn't include.</Text>
+            <Text style={[type.tiny, { marginTop: space(3) }]}>SMS doesn't include card limits, vehicle models or every date. Open new cards and vehicles afterwards to add them.</Text>
           )}
 
           <Button
@@ -170,7 +170,7 @@ export default function SmsImportScreen({ navigation, route }: Props) {
 
       {phase === 'done' && (
         <>
-          <Text style={[type.body, { marginTop: space(6), color: colors.good }]}>Done. Kova is up to date with your messages.</Text>
+          <Text style={[type.body, { marginTop: space(6), color: colors.good }]}>Added to Kova.</Text>
           <Button label="Close" onPress={() => navigation.goBack()} style={{ marginTop: space(6) }} />
         </>
       )}
